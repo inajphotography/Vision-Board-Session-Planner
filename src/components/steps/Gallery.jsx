@@ -61,63 +61,6 @@ export default function Gallery() {
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-8 space-y-4">
-          <div>
-            <p className="font-montserrat text-xs uppercase tracking-wider text-secondary-text mb-2">Mood</p>
-            <div className="flex flex-wrap gap-2">
-              {moods.map(mood => (
-                <button
-                  key={mood}
-                  className={`filter-tag ${activeFilters.mood === mood ? 'active' : ''}`}
-                  onClick={() => setFilter('mood', mood)}
-                >
-                  {mood}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="font-montserrat text-xs uppercase tracking-wider text-secondary-text mb-2">Setting</p>
-            <div className="flex flex-wrap gap-2">
-              {settings.map(setting => (
-                <button
-                  key={setting}
-                  className={`filter-tag ${activeFilters.setting === setting ? 'active' : ''}`}
-                  onClick={() => setFilter('setting', setting)}
-                >
-                  {setting}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="font-montserrat text-xs uppercase tracking-wider text-secondary-text mb-2">Style</p>
-            <div className="flex flex-wrap gap-2">
-              {styles.map(style => (
-                <button
-                  key={style}
-                  className={`filter-tag ${activeFilters.style === style ? 'active' : ''}`}
-                  onClick={() => setFilter('style', style)}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {(activeFilters.mood || activeFilters.setting || activeFilters.style) && (
-            <button
-              onClick={clearFilters}
-              className="text-sm text-coral font-montserrat font-medium hover:underline"
-            >
-              Clear all filters
-            </button>
-          )}
-        </div>
-
         {/* Gallery grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredImages.map(image => (

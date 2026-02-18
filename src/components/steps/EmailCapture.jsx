@@ -56,7 +56,7 @@ export default function EmailCapture() {
             One Last Step
           </h1>
           <p className="text-secondary-text font-lato text-lg leading-relaxed">
-            Share your email to get your personalized vision board.
+            Share your email to get your personalised vision board.
             We'll send it so you can review it, share it with friends,
             and use it when you're ready to book your session.
           </p>

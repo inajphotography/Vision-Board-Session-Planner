@@ -1,12 +1,12 @@
 import useVisionStore from '../../store/useVisionStore';
 
+const MAX_CHARS = 100;
+
 const placeholders = [
   "I want to capture her playful spirit...",
   "I want to feel his unconditional love...",
   "A memory of our quiet bond...",
 ];
-
-const MAX_CHARS = 100;
 
 export default function Intentions() {
   const { intentions, setIntention, nextStep, prevStep } = useVisionStore();
@@ -21,7 +21,7 @@ export default function Intentions() {
           </h1>
           <p className="text-secondary-text font-lato text-lg">
             In a few words, what are the most important feelings or memories
-            you want to capture during your session?
+            you want to capture during your session? There are no wrong answers, just your heart.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default function Intentions() {
             disabled={!hasAtLeastOne}
             className="flex-1 btn-coral"
           >
-            Next: Capture Your Email
+            Generate My Vision Board
           </button>
         </div>
       </div>

@@ -23,11 +23,11 @@ export default function AnnotationModal({ image, onClose }) {
         className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="aspect-[4/3] overflow-hidden">
+        <div className="overflow-hidden flex items-center justify-center bg-black/5">
           <img
             src={image.imageUrl}
             alt={image.filename}
-            className="w-full h-full object-cover"
+            className="w-full max-h-[50vh] object-contain"
           />
         </div>
 

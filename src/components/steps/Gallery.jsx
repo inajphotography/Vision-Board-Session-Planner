@@ -66,7 +66,7 @@ export default function Gallery() {
           {filteredImages.map(image => (
             <div
               key={image.id}
-              className={`gallery-image relative rounded-lg overflow-hidden cursor-pointer aspect-[3/4] ${
+              className={`gallery-image relative rounded-lg overflow-hidden cursor-pointer aspect-square ${
                 isSelected(image.id) ? 'ring-3 ring-coral' : ''
               }`}
               onClick={() => handleImageClick(image)}

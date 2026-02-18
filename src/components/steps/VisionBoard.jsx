@@ -1,6 +1,12 @@
 import { useRef } from 'react';
 import useVisionStore from '../../store/useVisionStore';
 
+const intentionQuestions = [
+  'What emotion or personality trait do you want to preserve?',
+  'What feeling do you want to experience when you look at these photos?',
+  'What special moment or connection matters most to you?',
+];
+
 export default function VisionBoard() {
   const { selections, intentions, userName, getSessionBrief, nextStep } = useVisionStore();
   const boardRef = useRef(null);
@@ -58,21 +64,26 @@ export default function VisionBoard() {
             ))}
           </div>
 
-          {/* Emotional Intentions */}
+          {/* Core Desires */}
           {intentions.filter(i => i.trim()).length > 0 && (
             <div className="mb-8 p-6 bg-ivory rounded-xl">
               <h3 className="font-playfair text-lg font-bold text-dark-green mb-4">
-                Your Emotional Intentions
+                Your Core Desires
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {intentions.filter(i => i.trim()).map((intention, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <span className="text-coral mt-0.5">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                      </svg>
-                    </span>
-                    <p className="font-lato text-dark-green">{intention}</p>
+                  <div key={idx}>
+                    <p className="font-lato text-xs text-secondary-text mb-1">
+                      {intentionQuestions[idx]}
+                    </p>
+                    <div className="flex items-start gap-3">
+                      <span className="text-coral mt-0.5">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="font-lato text-dark-green">{intention}</p>
+                    </div>
                   </div>
                 ))}
               </div>

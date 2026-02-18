@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme {
+  --color-coral: #CA5E3C;
+  --color-coral-dark: #b04e30;
+  --color-dark-green: #232817;
+  --color-ivory: #F7F4ED;
+  --color-secondary-text: #7A7A7A;
+  --font-playfair: 'Playfair Display', serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-lato: 'Lato', sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #F7F4ED;
+  color: #232817;
+  font-family: 'Lato', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+}
+
+.btn-coral {
+  background-color: #CA5E3C;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-coral:hover {
+  background-color: #b04e30;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(202, 94, 60, 0.3);
+}
+
+.btn-coral:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Gallery image hover */
+.gallery-image {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.gallery-image:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F4ED;
+}
+::-webkit-scrollbar-thumb {
+  background: #CA5E3C;
+  border-radius: 3px;
+}
+
+/* Filter tag styles */
+.filter-tag {
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1.5px solid #232817;
+  color: #232817;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.filter-tag:hover {
+  background-color: #232817;
+  color: #F7F4ED;
+}
+.filter-tag.active {
+  background-color: #232817;
+  color: #F7F4ED;
+}
+
+/* Selection tray */
+.selection-tray {
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+
+/* Print-friendly vision board */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}

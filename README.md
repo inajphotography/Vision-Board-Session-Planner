@@ -36,37 +36,23 @@ Make sure this repository is on GitHub (it already is if you're reading this the
 
 Your app will be live in about 60 seconds! The vision board will work immediately — users can select images, write annotations, and view their vision board.
 
-### Step 3: Add API Keys (for email + CRM to work)
+### Step 3: Set up Brevo (free — handles emails + contacts)
 
-The app works without these, but emails won't send and contacts won't be saved until you add them.
-
-1. In your Vercel project, go to **Settings → Environment Variables**
-2. Add these variables:
+1. Go to **brevo.com** and create a free account (300 emails/day included)
+2. Go to **SMTP & API → API Keys** and copy your API key
+3. In Brevo, go to **Senders & IPs → Senders** and add/verify your sender email
+4. In your Vercel project, go to **Settings → Environment Variables**
+5. Add these variables:
 
 | Name | Value | Where to get it |
 |------|-------|-----------------|
-| `SENDGRID_API_KEY` | `SG.xxxxx...` | sendgrid.com → Settings → API Keys |
 | `BREVO_API_KEY` | `xkeysib-xxxxx...` | brevo.com → SMTP & API → API Keys |
 | `BUSINESS_EMAIL` | `ina@inajphotography.com` | Your notification email |
-| `FROM_EMAIL` | `noreply@inajphotography.com` | Must be verified in SendGrid |
+| `FROM_EMAIL` | `noreply@inajphotography.com` | Must be verified in Brevo Senders |
 
-3. After adding the variables, click **"Redeploy"** from the Deployments tab
+6. Go to **Deployments** tab and click **"Redeploy"**
 
-### Step 4: Set up SendGrid (for emails)
-
-1. Go to **sendgrid.com** and create a free account
-2. Go to **Settings → Sender Authentication** and verify your domain (inajphotography.com)
-3. Go to **Settings → API Keys** and create a key with "Mail Send" permission
-4. Copy the key and paste it as `SENDGRID_API_KEY` in Vercel (Step 3)
-
-### Step 5: Set up Brevo (for contact list)
-
-1. Go to **brevo.com** and create a free account
-2. Go to **SMTP & API → API Keys** and copy your API key
-3. Paste it as `BREVO_API_KEY` in Vercel (Step 3)
-4. In Brevo, create a contact list called "Vision Board Submissions"
-
-### Step 6: Custom Domain (optional)
+### Step 4: Custom Domain (optional)
 
 1. In Vercel, go to **Settings → Domains**
 2. Add your domain (e.g., `visionboard.inajphotography.com`)

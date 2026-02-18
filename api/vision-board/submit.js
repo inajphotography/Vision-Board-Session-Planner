@@ -1,4 +1,3 @@
-import sgMail from '@sendgrid/mail';
 import PDFDocument from 'pdfkit';
 import axios from 'axios';
 
@@ -186,13 +185,33 @@ function buildBusinessEmailHTML(data) {
 
 // --- BREVO ---
 
-async function addContactToBrevo(data) {
-  const brevoKey = process.env.BREVO_API_KEY;
-  if (!brevoKey) {
-    console.log('[Brevo] API key not configured - skipping');
-    return;
+const brevoHeaders = () => ({
+  'api-key': process.env.BREVO_API_KEY,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+});
+
+async function sendBrevoEmail({ to, fromEmail, fromName, subject, html, pdfBuffer, pdfFilename }) {
+  const payload = {
+    sender: { email: fromEmail, name: fromName },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+
+  if (pdfBuffer) {
+    payload.attachment = [{
+      content: pdfBuffer.toString('base64'),
+      name: pdfFilename || 'Vision-Board.pdf',
+    }];
   }
 
+  await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
+    headers: brevoHeaders(),
+  });
+}
+
+async function addContactToBrevo(data) {
   const { user, visionBoard } = data;
   const nameParts = user.name.trim().split(' ');
 
@@ -209,11 +228,7 @@ async function addContactToBrevo(data) {
     },
     updateEnabled: true,
   }, {
-    headers: {
-      'api-key': brevoKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: brevoHeaders(),
   });
 }
 
@@ -251,54 +266,44 @@ export default async function handler(req, res) {
     // Send emails and create Brevo contact (don't block response on failures)
     const tasks = [];
 
-    const sendgridKey = process.env.SENDGRID_API_KEY;
+    const brevoKey = process.env.BREVO_API_KEY;
     const fromEmail = process.env.FROM_EMAIL || 'noreply@inajphotography.com';
     const businessEmail = process.env.BUSINESS_EMAIL || 'ina@inajphotography.com';
 
-    if (sendgridKey) {
-      sgMail.setApiKey(sendgridKey);
-
+    if (brevoKey) {
       // User email
       tasks.push(
-        sgMail.send({
+        sendBrevoEmail({
           to: email,
-          from: { email: fromEmail, name: 'Ina J Photography' },
+          fromEmail,
+          fromName: 'Ina J Photography',
           subject: 'Your Emotional Vision Board is Ready!',
           html: buildUserEmailHTML(submissionData),
-          ...(pdfBuffer && {
-            attachments: [{
-              content: pdfBuffer.toString('base64'),
-              filename: 'Vision-Board.pdf',
-              type: 'application/pdf',
-              disposition: 'attachment',
-            }],
-          }),
+          pdfBuffer,
+          pdfFilename: 'Vision-Board.pdf',
         }).catch(err => console.error('User email failed:', err.message))
       );
 
       // Business email
       tasks.push(
-        sgMail.send({
+        sendBrevoEmail({
           to: businessEmail,
-          from: { email: fromEmail, name: 'Vision Board App' },
+          fromEmail,
+          fromName: 'Vision Board App',
           subject: `New Vision Board Submission from ${name}`,
           html: buildBusinessEmailHTML(submissionData),
-          ...(pdfBuffer && {
-            attachments: [{
-              content: pdfBuffer.toString('base64'),
-              filename: `Vision-Board-${name.replace(/\s+/g, '-')}.pdf`,
-              type: 'application/pdf',
-              disposition: 'attachment',
-            }],
-          }),
+          pdfBuffer,
+          pdfFilename: `Vision-Board-${name.replace(/\s+/g, '-')}.pdf`,
         }).catch(err => console.error('Business email failed:', err.message))
       );
-    } else {
-      console.log('[Email] SendGrid not configured - skipping emails');
-    }
 
-    // Brevo
-    tasks.push(addContactToBrevo(submissionData).catch(err => console.error('Brevo failed:', err.message)));
+      // Add contact
+      tasks.push(
+        addContactToBrevo(submissionData).catch(err => console.error('Brevo contact failed:', err.message))
+      );
+    } else {
+      console.log('[Brevo] API key not configured - skipping emails and contacts');
+    }
 
     await Promise.allSettled(tasks);
 

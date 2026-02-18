@@ -15,7 +15,7 @@ export default function VisionBoard() {
             Your Emotional Vision Board is Ready!
           </h1>
           <p className="text-secondary-text font-lato text-lg">
-            {userName ? `${userName}, here` : 'Here'} is your personalized session vision.
+            {userName ? `${userName}, here` : 'Here'} is your personalised session vision.
           </p>
         </div>
 
@@ -93,25 +93,40 @@ export default function VisionBoard() {
           </div>
         </div>
 
-        {/* Consultation CTA */}
+        {/* CTAs */}
         <div className="text-center bg-ivory rounded-2xl p-8 sm:p-10">
           <h3 className="font-playfair text-2xl font-bold text-dark-green mb-3">
             Ready to Bring This Vision to Life?
           </h3>
           <p className="text-secondary-text font-lato text-lg mb-6 max-w-lg mx-auto">
-            Let's chat about how we can capture your dog's unique soul in a way that honors your bond.
+            Let's chat about how we can capture your dog's unique soul in a way that honours your bond.
           </p>
-          <a
-            href="https://www.inajphotography.com/booking"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-coral text-lg px-10 py-4 inline-block"
-          >
-            Schedule Your Complimentary Consultation
-          </a>
-          <p className="text-secondary-text font-lato text-sm mt-4">
-            Your vision board has been sent to your email for reference.
-          </p>
+          <div className="space-y-4">
+            <a
+              href="https://www.inajphotography.com/booking"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-coral text-lg px-10 py-4 block"
+            >
+              Schedule Your Complimentary Consultation
+            </a>
+            <a
+              href="https://instagram.com/inajphotography"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors"
+            >
+              Follow @inajphotography on Instagram
+            </a>
+            <a
+              href="https://www.inajphotography.com/session-info"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors"
+            >
+              Find out More about the Experience
+            </a>
+          </div>
         </div>
       </div>
     </div>

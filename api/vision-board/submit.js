@@ -144,7 +144,7 @@ function buildUserEmailHTML(data) {
     <div class="header"><h1>Ina J Photography</h1><p>Your Emotional Vision Board</p></div>
     <div class="content">
       <p>Hi ${data.user.name},</p>
-      <p>Your personalized vision board is attached! This is a beautiful visual summary of your perfect photography session\u2014the moods, settings, and styles that resonate most with you.</p>
+      <p>Your personalised vision board is attached! This is a beautiful visual summary of your perfect photography session\u2014the moods, settings, and styles that resonate most with you.</p>
       <p>When you\u2019re ready to bring this vision to life, we\u2019d love to chat about how we can capture your dog\u2019s unique soul in a way that honors your bond.</p>
       <p style="text-align:center"><a href="https://www.inajphotography.com/booking" class="cta">Schedule Your Complimentary Consultation</a></p>
       <p>Or explore more of our work on <a href="https://instagram.com/inajphotography" style="color:#CA5E3C">Instagram</a>.</p>

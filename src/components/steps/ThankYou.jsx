@@ -16,7 +16,7 @@ export default function ThankYou() {
         </h1>
 
         <p className="text-lg text-secondary-text font-lato leading-relaxed mb-10">
-          We've sent your personalized vision board to your email.
+          We've sent your personalised vision board to your email.
           Check your inbox (and spam folder, just in case!) in the next few minutes.
         </p>
 
@@ -28,7 +28,7 @@ export default function ThankYou() {
           <div className="space-y-4">
             {[
               'Review your vision board and share it with anyone you\'d like',
-              'We\'ll review your preferences and reach out within 24 hours with personalized session options',
+              'We\'ll review your preferences and reach out within 24 hours with personalised session options',
               'Schedule your complimentary consultation to discuss your vision and answer any questions',
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-3">

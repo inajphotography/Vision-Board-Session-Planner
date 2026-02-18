@@ -2,10 +2,16 @@ import useVisionStore from '../../store/useVisionStore';
 
 const MAX_CHARS = 100;
 
+const intentionLabels = [
+  'What emotion or personality trait do you want to preserve?',
+  'What feeling do you want to experience when you look at these photos?',
+  'What special moment or connection matters most to you?',
+];
+
 const placeholders = [
-  "I want to capture her playful spirit...",
-  "I want to feel his unconditional love...",
-  "A memory of our quiet bond...",
+  "Her playful spirit and cheeky grin...",
+  "Warmth, joy, a feeling of home...",
+  "Our quiet morning cuddles on the couch...",
 ];
 
 export default function Intentions() {
@@ -28,8 +34,8 @@ export default function Intentions() {
         <div className="space-y-6">
           {intentions.map((intention, idx) => (
             <div key={idx}>
-              <label className="block font-montserrat text-xs uppercase tracking-wider text-secondary-text mb-2">
-                Intention {idx + 1}
+              <label className="block font-lato text-sm text-dark-green font-medium mb-2">
+                {intentionLabels[idx]}
               </label>
               <textarea
                 value={intention}

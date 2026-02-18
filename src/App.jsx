@@ -36,39 +36,49 @@ function App() {
     }
   };
 
-  // Progress indicator (steps 1-7)
+  // Progress indicator — 4 visible steps mapped to internal step numbers
   const progressSteps = [
-    { num: 1, label: 'Welcome' },
-    { num: 2, label: 'Gallery' },
-    { num: 4, label: 'Intentions' },
-    { num: 5, label: 'Email' },
-    { num: 6, label: 'Vision Board' },
-    { num: 7, label: 'Complete' },
+    { minStep: 1, label: 'Welcome' },
+    { minStep: 2, label: 'Select' },
+    { minStep: 4, label: 'Intentions' },
+    { minStep: 5, label: 'Your Vision' },
   ];
+
+  const showHeader = currentStep > 1 && currentStep < 6;
 
   return (
     <div className="min-h-screen bg-ivory">
-      {/* Progress bar - hidden on step 1 and 7 */}
-      {currentStep > 1 && currentStep < 7 && (
+      {/* Header with logo + progress bar */}
+      {showHeader && (
         <div className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto px-4 py-3">
+            {/* Logo */}
+            <p className="font-playfair text-sm text-dark-green text-center mb-3 tracking-wide">
+              Ina J Photography
+            </p>
+            {/* Steps */}
             <div className="flex items-center justify-between">
               {progressSteps.map((step, idx) => (
-                <div key={step.num} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-montserrat font-semibold transition-colors ${
-                    currentStep >= step.num
-                      ? 'bg-coral text-white'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {currentStep > step.num ? (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : idx + 1}
+                <div key={step.label} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-montserrat font-semibold transition-colors ${
+                      currentStep >= step.minStep
+                        ? 'bg-coral text-white'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}>
+                      {currentStep > step.minStep ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : idx + 1}
+                    </div>
+                    <span className="text-[10px] font-montserrat mt-1 text-secondary-text whitespace-nowrap">
+                      {step.label}
+                    </span>
                   </div>
                   {idx < progressSteps.length - 1 && (
-                    <div className={`w-8 sm:w-16 md:w-24 h-0.5 mx-1 transition-colors ${
-                      currentStep > step.num ? 'bg-coral' : 'bg-gray-200'
+                    <div className={`w-8 sm:w-16 md:w-24 h-0.5 mx-1 mb-4 transition-colors ${
+                      currentStep > step.minStep ? 'bg-coral' : 'bg-gray-200'
                     }`} />
                   )}
                 </div>
@@ -79,7 +89,7 @@ function App() {
       )}
 
       {/* Main content */}
-      <main className={currentStep > 1 && currentStep < 7 ? 'pt-16' : ''}>
+      <main className={showHeader ? 'pt-24' : ''}>
         <div
           className={`transition-all duration-300 ${
             animating ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'

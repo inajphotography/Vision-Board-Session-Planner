@@ -16,13 +16,19 @@ async function downloadImages(selections) {
   return results.map(r => r.status === 'fulfilled' ? r.value : null);
 }
 
+const intentionQuestions = [
+  'What emotion or personality trait do you want to preserve?',
+  'What feeling do you want to experience when you look at these photos?',
+  'What special moment or connection matters most to you?',
+];
+
 async function generatePDF(data) {
   const { user, visionBoard } = data;
   const { selections, intentions } = visionBoard;
 
   const doc = new PDFDocument({
     size: 'A4',
-    margin: 40,
+    margin: 50,
     info: { Title: `Vision Board - ${user.name}`, Author: 'Ina J Photography' }
   });
 
@@ -33,69 +39,109 @@ async function generatePDF(data) {
   const darkGreen = '#232817';
   const ivory = '#F7F4ED';
   const grey = '#7A7A7A';
+  const pw = doc.page.width - 100; // usable page width (50 margin each side)
 
-  // Header
-  doc.rect(0, 0, doc.page.width, 100).fill(ivory);
+  // ─── PAGE 1: Header + Image Grid ───
+
+  // Ivory header band
+  doc.rect(0, 0, doc.page.width, 110).fill(ivory);
+
+  // Brand name
   doc.fontSize(10).fillColor(grey).font('Helvetica')
-    .text('INA J PHOTOGRAPHY', 40, 30, { align: 'center' });
-  doc.fontSize(24).fillColor(darkGreen).font('Helvetica-Bold')
-    .text('Session Vision Board', 40, 48, { align: 'center' });
-  doc.fontSize(11).fillColor(grey).font('Helvetica')
-    .text(`Created for ${user.name}`, 40, 78, { align: 'center' });
+    .text('INA J PHOTOGRAPHY', 50, 30, { align: 'center', width: pw });
 
-  // Images
+  // Title
+  doc.fontSize(26).fillColor(darkGreen).font('Helvetica-Bold')
+    .text('Your Emotional Vision Board', 50, 50, { align: 'center', width: pw });
+
+  // Subtitle
+  doc.fontSize(11).fillColor(grey).font('Helvetica')
+    .text(`Created for ${user.name}`, 50, 85, { align: 'center', width: pw });
+
+  // Decorative line
+  const lineY = 115;
+  doc.moveTo(50, lineY).lineTo(50 + pw, lineY).strokeColor(coral).lineWidth(1.5).stroke();
+
+  // Image grid — 2 columns, landscape-friendly
   const imageBuffers = await downloadImages(selections);
-  const pageWidth = doc.page.width - 80;
-  const cols = selections.length <= 4 ? 2 : selections.length <= 6 ? 3 : 4;
-  const imgWidth = (pageWidth - (cols - 1) * 10) / cols;
-  const imgHeight = imgWidth * 1.2;
-  let yPos = 120;
+  const cols = 2;
+  const gap = 14;
+  const imgWidth = (pw - gap) / cols;
+  const imgHeight = imgWidth * 0.67; // landscape ratio
+  const annotationSpace = 16;
+  let yPos = 130;
 
   for (let i = 0; i < selections.length; i++) {
     const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = 40 + col * (imgWidth + 10);
-    let y = yPos + row * (imgHeight + 40);
+    const x = 50 + col * (imgWidth + gap);
+    const cellHeight = imgHeight + annotationSpace;
 
-    if (y + imgHeight + 40 > doc.page.height - 40) {
+    // Check page break
+    if (yPos + cellHeight > doc.page.height - 50) {
       doc.addPage();
-      yPos = 40 - row * (imgHeight + 40);
-      y = yPos + row * (imgHeight + 40);
+      yPos = 50;
     }
 
     if (imageBuffers[i]) {
       try {
-        doc.image(imageBuffers[i], x, y, {
+        doc.save();
+        doc.roundedRect(x, yPos, imgWidth, imgHeight, 4).clip();
+        doc.image(imageBuffers[i], x, yPos, {
           width: imgWidth, height: imgHeight,
           fit: [imgWidth, imgHeight], align: 'center', valign: 'center',
         });
+        doc.restore();
       } catch {
-        doc.rect(x, y, imgWidth, imgHeight).fill('#f0f0f0');
+        doc.roundedRect(x, yPos, imgWidth, imgHeight, 4).fill('#f0f0f0');
       }
     }
 
     if (selections[i].annotation) {
       doc.fontSize(8).fillColor(darkGreen).font('Helvetica-Oblique')
-        .text(`"${selections[i].annotation}"`, x, y + imgHeight + 4, { width: imgWidth, lineGap: 1 });
+        .text(`\u201C${selections[i].annotation}\u201D`, x, yPos + imgHeight + 3, { width: imgWidth, lineGap: 1 });
+    }
+
+    // Advance row after second column
+    if (col === cols - 1) {
+      yPos += cellHeight + 8;
     }
   }
-
-  // Intentions page
-  doc.addPage();
-  const filledIntentions = (intentions || []).filter(i => i && i.trim());
-  if (filledIntentions.length > 0) {
-    doc.fontSize(18).fillColor(darkGreen).font('Helvetica-Bold')
-      .text('Your Emotional Intentions', 40, 40);
-    doc.moveDown(0.8);
-    filledIntentions.forEach((intention) => {
-      doc.fontSize(12).fillColor(coral).font('Helvetica').text('\u2665 ', { continued: true });
-      doc.fillColor(darkGreen).font('Helvetica').text(intention);
-      doc.moveDown(0.5);
-    });
-    doc.moveDown(1);
+  // Handle odd number of images — advance row
+  if (selections.length % cols !== 0) {
+    yPos += imgHeight + annotationSpace + 8;
   }
 
-  // Session brief
+  // ─── PAGE 2: Core Desires + Session Brief + CTA ───
+  doc.addPage();
+  let cy = 50;
+
+  // Core Desires section
+  const filledIntentions = (intentions || []).filter(i => i && i.trim());
+  if (filledIntentions.length > 0) {
+    doc.fontSize(20).fillColor(darkGreen).font('Helvetica-Bold')
+      .text('Your Core Desires', 50, cy, { width: pw });
+    cy += 30;
+
+    // Decorative line
+    doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
+    cy += 16;
+
+    filledIntentions.forEach((intention, idx) => {
+      // Question label
+      doc.fontSize(9).fillColor(grey).font('Helvetica')
+        .text(intentionQuestions[idx] || '', 50, cy, { width: pw });
+      cy += 14;
+
+      // Answer with heart icon
+      doc.fontSize(12).fillColor(coral).font('Helvetica')
+        .text('\u2665 ', 50, cy, { continued: true });
+      doc.fillColor(darkGreen).font('Helvetica').text(intention);
+      cy += 22;
+    });
+    cy += 10;
+  }
+
+  // Session Brief section
   const moodCounts = {};
   const settingCounts = {};
   selections.forEach(s => {
@@ -108,17 +154,48 @@ async function generatePDF(data) {
   const hasPosed = selections.some(s => s.style.toLowerCase().includes('posed'));
   const styleDesc = hasCandid && hasPosed ? 'candid and posed' : hasCandid ? 'candid' : hasPosed ? 'posed' : 'artistic';
 
-  doc.fontSize(18).fillColor(darkGreen).font('Helvetica-Bold').text('Session Brief');
-  doc.moveDown(0.5);
-  doc.fontSize(12).fillColor(darkGreen).font('Helvetica')
-    .text(`Your vision focuses on a ${topMoods.join(' and ')} mood in ${topSettings.join(' and ')} settings, capturing a mix of ${styleDesc} moments.`, { lineGap: 2 });
+  doc.fontSize(20).fillColor(darkGreen).font('Helvetica-Bold')
+    .text('Session Brief', 50, cy, { width: pw });
+  cy += 28;
 
-  doc.moveDown(2);
-  doc.fontSize(10).fillColor(grey).font('Helvetica').text('Ready to bring this vision to life?', { align: 'center' });
-  doc.fontSize(10).fillColor(coral).font('Helvetica-Bold')
-    .text('Book your consultation: www.inajphotography.com/booking', { align: 'center', link: 'https://www.inajphotography.com/booking' });
-  doc.moveDown(2);
-  doc.fontSize(9).fillColor(grey).font('Helvetica').text('Ina J Photography | Canberra, Australia', { align: 'center' });
+  doc.fontSize(12).fillColor(darkGreen).font('Helvetica')
+    .text(`Your vision focuses on a ${topMoods.join(' and ')} mood in ${topSettings.join(' and ')} settings, capturing a mix of ${styleDesc} moments.`, 50, cy, { width: pw, lineGap: 3 });
+  cy += 50;
+
+  // CTA section
+  doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor('#ddd').lineWidth(0.5).stroke();
+  cy += 24;
+
+  doc.fontSize(14).fillColor(darkGreen).font('Helvetica-Bold')
+    .text('Ready to bring this vision to life?', 50, cy, { align: 'center', width: pw });
+  cy += 24;
+
+  doc.fontSize(11).fillColor(coral).font('Helvetica-Bold')
+    .text('Schedule Your Complimentary Consultation', 50, cy, {
+      align: 'center', width: pw,
+      link: 'https://www.inajphotography.com/booking',
+    });
+  cy += 20;
+  doc.fontSize(10).fillColor(darkGreen).font('Helvetica')
+    .text('www.inajphotography.com/booking', 50, cy, {
+      align: 'center', width: pw, link: 'https://www.inajphotography.com/booking',
+    });
+  cy += 28;
+
+  doc.fontSize(10).fillColor(grey).font('Helvetica')
+    .text('Follow @inajphotography on Instagram', 50, cy, {
+      align: 'center', width: pw, link: 'https://instagram.com/inajphotography',
+    });
+  cy += 18;
+  doc.fontSize(10).fillColor(grey).font('Helvetica')
+    .text('Find out more about the experience', 50, cy, {
+      align: 'center', width: pw, link: 'https://www.inajphotography.com/session-info',
+    });
+  cy += 32;
+
+  // Footer
+  doc.fontSize(9).fillColor(grey).font('Helvetica')
+    .text('Ina J Photography | Canberra, Australia', 50, cy, { align: 'center', width: pw });
 
   doc.end();
 

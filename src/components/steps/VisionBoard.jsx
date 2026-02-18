@@ -93,10 +93,25 @@ export default function VisionBoard() {
           </div>
         </div>
 
-        <div className="text-center">
-          <button onClick={nextStep} className="btn-coral text-lg px-10 py-4">
-            Continue
-          </button>
+        {/* Consultation CTA */}
+        <div className="text-center bg-ivory rounded-2xl p-8 sm:p-10">
+          <h3 className="font-playfair text-2xl font-bold text-dark-green mb-3">
+            Ready to Bring This Vision to Life?
+          </h3>
+          <p className="text-secondary-text font-lato text-lg mb-6 max-w-lg mx-auto">
+            Let's chat about how we can capture your dog's unique soul in a way that honors your bond.
+          </p>
+          <a
+            href="https://www.inajphotography.com/booking"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-coral text-lg px-10 py-4 inline-block"
+          >
+            Schedule Your Complimentary Consultation
+          </a>
+          <p className="text-secondary-text font-lato text-sm mt-4">
+            Your vision board has been sent to your email for reference.
+          </p>
         </div>
       </div>
     </div>

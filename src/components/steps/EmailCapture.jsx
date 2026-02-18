@@ -103,32 +103,23 @@ export default function EmailCapture() {
             </div>
           )}
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={prevStep}
-              className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors"
-            >
-              Back
-            </button>
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className="flex-1 btn-coral flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Sending...
-                </>
-              ) : (
-                'Send My Vision Board'
-              )}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="w-full btn-coral flex items-center justify-center gap-2 py-4"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Creating Your Vision Board...
+              </>
+            ) : (
+              'See My Vision Board'
+            )}
+          </button>
 
           <p className="text-center text-xs text-secondary-text font-lato mt-4">
             We respect your privacy. Your information will only be used to send your vision board

@@ -48,7 +48,7 @@ export default function VisionBoard() {
           }`}>
             {selections.map((sel) => (
               <div key={sel.imageId} className="space-y-2">
-                <div className="aspect-[3/4] rounded-lg overflow-hidden">
+                <div className="aspect-[3/2] rounded-lg overflow-hidden">
                   <img
                     src={sel.imageUrl}
                     alt={sel.filename}

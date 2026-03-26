@@ -5,6 +5,7 @@ import axios from 'axios';
 export default function EmailCapture() {
   const {
     userName, setUserName, userEmail, setUserEmail,
+    dogName, setDogName,
     selections, intentions, nextStep, prevStep,
     isSubmitting, setSubmitting, setSubmitError, submitError,
   } = useVisionStore();
@@ -37,6 +38,7 @@ export default function EmailCapture() {
       await axios.post('/api/vision-board/submit', {
         name: userName.trim(),
         email: userEmail.trim(),
+        dogName: dogName.trim() || undefined,
         selections,
         intentions: intentions.filter(i => i.trim()),
       });
@@ -53,12 +55,12 @@ export default function EmailCapture() {
       <div className="max-w-md mx-auto w-full py-12">
         <div className="text-center mb-10">
           <h1 className="text-3xl sm:text-4xl font-playfair font-bold text-dark-green mb-4">
-            One Last Step
+            Get Your Personalised Session Vision Board
           </h1>
           <p className="text-secondary-text font-lato text-lg leading-relaxed">
-            Share your email to get your personalised vision board.
-            We'll send it so you can review it, share it with friends,
-            and use it when you're ready to book your session.
+            We'll email you a beautifully designed PDF with your selected imagery,
+            your core desires, and a simple session brief you can keep, share,
+            and use when you're ready to plan your shoot.
           </p>
         </div>
 
@@ -97,6 +99,19 @@ export default function EmailCapture() {
             )}
           </div>
 
+          <div>
+            <label className="block font-montserrat text-xs uppercase tracking-wider text-secondary-text mb-2">
+              Dog's Name <span className="normal-case tracking-normal text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={dogName}
+              onChange={(e) => setDogName(e.target.value)}
+              placeholder="Rosie"
+              className="w-full p-4 border border-gray-300 rounded-lg font-lato text-dark-green placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-coral focus:border-transparent"
+            />
+          </div>
+
           {submitError && (
             <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-lato">
               {submitError}
@@ -117,7 +132,7 @@ export default function EmailCapture() {
                 Creating Your Vision Board...
               </>
             ) : (
-              'See My Vision Board'
+              'Send My Vision Board'
             )}
           </button>
 

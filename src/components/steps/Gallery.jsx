@@ -57,7 +57,7 @@ export default function Gallery() {
             Explore & Select
           </h1>
           <p className="text-secondary-text font-lato text-lg max-w-2xl mx-auto">
-            Choose 4-8 images that capture the feeling you want for your session.
+            Choose 4–8 images that feel most like the session you want.
           </p>
         </div>
 

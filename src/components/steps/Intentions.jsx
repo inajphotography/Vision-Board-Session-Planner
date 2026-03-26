@@ -3,9 +3,9 @@ import useVisionStore from '../../store/useVisionStore';
 const MAX_CHARS = 100;
 
 const intentionLabels = [
-  'What emotion or personality trait do you want to preserve?',
-  'What feeling do you want to experience when you look at these photos?',
-  'What special moment or connection matters most to you?',
+  'What part of your dog\u2019s personality do you most want to preserve?',
+  'How do you want these photos to feel when you look back on them?',
+  'What connection or moment matters most to capture?',
 ];
 
 const placeholders = [

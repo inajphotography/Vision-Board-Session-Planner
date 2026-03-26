@@ -6,6 +6,7 @@ const useVisionStore = create((set, get) => ({
   intentions: ['', '', ''],
   userName: '',
   userEmail: '',
+  dogName: '',
   activeFilters: {
     mood: null,
     setting: null,
@@ -76,6 +77,7 @@ const useVisionStore = create((set, get) => ({
 
   setUserName: (name) => set({ userName: name }),
   setUserEmail: (email) => set({ userEmail: email }),
+  setDogName: (name) => set({ dogName: name }),
   setSubmitting: (val) => set({ isSubmitting: val }),
   setSubmitError: (err) => set({ submitError: err }),
 

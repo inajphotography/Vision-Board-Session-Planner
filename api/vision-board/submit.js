@@ -17,14 +17,55 @@ async function downloadImages(selections) {
 }
 
 const intentionQuestions = [
-  'What emotion or personality trait do you want to preserve?',
-  'What feeling do you want to experience when you look at these photos?',
-  'What special moment or connection matters most to you?',
+  'What part of your dog\u2019s personality do you most want to preserve?',
+  'How do you want these photos to feel when you look back on them?',
+  'What connection or moment matters most to capture?',
 ];
+
+function buildBespokeNarrative(selections, intentions, dogName) {
+  const moodCounts = {};
+  const settingCounts = {};
+  selections.forEach(s => {
+    moodCounts[s.mood] = (moodCounts[s.mood] || 0) + 1;
+    settingCounts[s.setting] = (settingCounts[s.setting] || 0) + 1;
+  });
+  const topMoods = Object.entries(moodCounts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([m]) => m.toLowerCase());
+  const topSettings = Object.entries(settingCounts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([s]) => s.toLowerCase());
+  const hasCandid = selections.some(s => s.style.toLowerCase().includes('candid'));
+  const hasPosed = selections.some(s => s.style.toLowerCase().includes('posed'));
+  const styleDesc = hasCandid && hasPosed ? 'candid and posed' : hasCandid ? 'candid' : hasPosed ? 'posed' : 'artistic';
+  const dog = dogName || 'your dog';
+  const moodText = topMoods.join(' and ');
+  const settingText = topSettings.join(' and ');
+
+  let narrative = `This vision leans ${moodText}, with a mix of ${styleDesc} moments in ${settingText} settings.`;
+
+  const settingLower = settingText.toLowerCase();
+  if (settingLower.includes('outdoor') || settingLower.includes('garden') || settingLower.includes('park') || settingLower.includes('forest')) {
+    narrative += ` A soft outdoor setting would suit this beautifully.`;
+  } else if (settingLower.includes('studio') || settingLower.includes('indoor')) {
+    narrative += ` A cosy studio session would bring this to life perfectly.`;
+  }
+
+  narrative += ` Your session should prioritise ${dog}'s personality and the bond you share.`;
+
+  // Build structured brief data for PDF
+  return {
+    narrative,
+    mood: moodText,
+    setting: settingText,
+    styleBalance: styleDesc,
+    emotionalFocus: (intentions || []).filter(i => i && i.trim()).length > 0
+      ? intentions.filter(i => i && i.trim())[0]
+      : null,
+    planningFocus: `Focus on capturing ${dog}'s authentic personality in a ${moodText}, ${settingText} environment.`,
+  };
+}
 
 async function generatePDF(data) {
   const { user, visionBoard } = data;
   const { selections, intentions } = visionBoard;
+  const dogName = user.dogName || '';
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -39,35 +80,32 @@ async function generatePDF(data) {
   const darkGreen = '#232817';
   const ivory = '#F7F4ED';
   const grey = '#7A7A7A';
-  const pw = doc.page.width - 100; // usable page width (50 margin each side)
+  const pw = doc.page.width - 100;
 
   // ─── PAGE 1: Header + Image Grid ───
 
-  // Ivory header band
   doc.rect(0, 0, doc.page.width, 110).fill(ivory);
 
-  // Brand name
   doc.fontSize(10).fillColor(grey).font('Helvetica')
     .text('INA J PHOTOGRAPHY', 50, 30, { align: 'center', width: pw });
 
-  // Title
   doc.fontSize(26).fillColor(darkGreen).font('Helvetica-Bold')
     .text('Your Emotional Vision Board', 50, 50, { align: 'center', width: pw });
 
-  // Subtitle
+  const subtitleParts = [user.name];
+  if (dogName) subtitleParts.push(dogName);
   doc.fontSize(11).fillColor(grey).font('Helvetica')
-    .text(`Created for ${user.name}`, 50, 85, { align: 'center', width: pw });
+    .text(`Created for ${subtitleParts.join(' & ')}`, 50, 85, { align: 'center', width: pw });
 
-  // Decorative line
   const lineY = 115;
   doc.moveTo(50, lineY).lineTo(50 + pw, lineY).strokeColor(coral).lineWidth(1.5).stroke();
 
-  // Image grid — 2 columns, landscape-friendly
+  // Image grid
   const imageBuffers = await downloadImages(selections);
   const cols = 2;
   const gap = 14;
   const imgWidth = (pw - gap) / cols;
-  const imgHeight = imgWidth * 0.67; // landscape ratio
+  const imgHeight = imgWidth * 0.67;
   const annotationSpace = 16;
   let yPos = 130;
 
@@ -76,7 +114,6 @@ async function generatePDF(data) {
     const x = 50 + col * (imgWidth + gap);
     const cellHeight = imgHeight + annotationSpace;
 
-    // Check page break
     if (yPos + cellHeight > doc.page.height - 50) {
       doc.addPage();
       yPos = 50;
@@ -101,38 +138,70 @@ async function generatePDF(data) {
         .text(`\u201C${selections[i].annotation}\u201D`, x, yPos + imgHeight + 3, { width: imgWidth, lineGap: 1 });
     }
 
-    // Advance row after second column
     if (col === cols - 1) {
       yPos += cellHeight + 8;
     }
   }
-  // Handle odd number of images — advance row
   if (selections.length % cols !== 0) {
     yPos += imgHeight + annotationSpace + 8;
   }
 
-  // ─── PAGE 2: Core Desires + Session Brief + CTA ───
+  // ─── PAGE 2: Session Brief + Core Desires + CTA ───
   doc.addPage();
   let cy = 50;
+
+  const brief = buildBespokeNarrative(selections, intentions, dogName);
+
+  // Session Brief — structured and human
+  doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
+    .text('Your Session Brief', 50, cy, { width: pw });
+  cy += 28;
+
+  doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
+  cy += 16;
+
+  // Narrative paragraph
+  doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Oblique')
+    .text(`\u201C${brief.narrative}\u201D`, 50, cy, { width: pw, lineGap: 3 });
+  cy += 50;
+
+  // Structured details
+  const briefItems = [
+    ['Session mood', brief.mood],
+    ['Best-fit setting', brief.setting],
+    ['Style balance', brief.styleBalance],
+  ];
+  if (brief.emotionalFocus) {
+    briefItems.push(['What matters most', brief.emotionalFocus]);
+  }
+  briefItems.push(['Planning focus', brief.planningFocus]);
+
+  briefItems.forEach(([label, value]) => {
+    doc.fontSize(9).fillColor(grey).font('Helvetica-Bold')
+      .text(label.toUpperCase(), 50, cy, { width: pw });
+    cy += 12;
+    doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
+      .text(value, 50, cy, { width: pw, lineGap: 2 });
+    cy += 20;
+  });
+
+  cy += 8;
 
   // Core Desires section
   const filledIntentions = (intentions || []).filter(i => i && i.trim());
   if (filledIntentions.length > 0) {
-    doc.fontSize(20).fillColor(darkGreen).font('Helvetica-Bold')
+    doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
       .text('Your Core Desires', 50, cy, { width: pw });
-    cy += 30;
+    cy += 28;
 
-    // Decorative line
     doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
     cy += 16;
 
     filledIntentions.forEach((intention, idx) => {
-      // Question label
       doc.fontSize(9).fillColor(grey).font('Helvetica')
         .text(intentionQuestions[idx] || '', 50, cy, { width: pw });
       cy += 14;
 
-      // Answer with heart icon
       doc.fontSize(12).fillColor(coral).font('Helvetica')
         .text('\u2665 ', 50, cy, { continued: true });
       doc.fillColor(darkGreen).font('Helvetica').text(intention);
@@ -141,37 +210,25 @@ async function generatePDF(data) {
     cy += 10;
   }
 
-  // Session Brief section
-  const moodCounts = {};
-  const settingCounts = {};
-  selections.forEach(s => {
-    moodCounts[s.mood] = (moodCounts[s.mood] || 0) + 1;
-    settingCounts[s.setting] = (settingCounts[s.setting] || 0) + 1;
-  });
-  const topMoods = Object.entries(moodCounts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([m]) => m.toLowerCase());
-  const topSettings = Object.entries(settingCounts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([s]) => s.toLowerCase());
-  const hasCandid = selections.some(s => s.style.toLowerCase().includes('candid'));
-  const hasPosed = selections.some(s => s.style.toLowerCase().includes('posed'));
-  const styleDesc = hasCandid && hasPosed ? 'candid and posed' : hasCandid ? 'candid' : hasPosed ? 'posed' : 'artistic';
-
-  doc.fontSize(20).fillColor(darkGreen).font('Helvetica-Bold')
-    .text('Session Brief', 50, cy, { width: pw });
-  cy += 28;
-
-  doc.fontSize(12).fillColor(darkGreen).font('Helvetica')
-    .text(`Your vision focuses on a ${topMoods.join(' and ')} mood in ${topSettings.join(' and ')} settings, capturing a mix of ${styleDesc} moments.`, 50, cy, { width: pw, lineGap: 3 });
-  cy += 50;
-
   // CTA section
+  if (cy > doc.page.height - 140) {
+    doc.addPage();
+    cy = 50;
+  }
+
   doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor('#ddd').lineWidth(0.5).stroke();
   cy += 24;
 
   doc.fontSize(14).fillColor(darkGreen).font('Helvetica-Bold')
     .text('Ready to bring this vision to life?', 50, cy, { align: 'center', width: pw });
-  cy += 24;
+  cy += 20;
 
-  doc.fontSize(11).fillColor(coral).font('Helvetica-Bold')
-    .text('Schedule Your Complimentary Consultation', 50, cy, {
+  doc.fontSize(11).fillColor(grey).font('Helvetica')
+    .text('Your vision board gives us a clear starting point. In your complimentary consultation call, we\u2019ll turn this into a real session plan.', 50, cy, { align: 'center', width: pw, lineGap: 2 });
+  cy += 36;
+
+  doc.fontSize(12).fillColor(coral).font('Helvetica-Bold')
+    .text('Book Your Complimentary Consultation Call', 50, cy, {
       align: 'center', width: pw,
       link: 'https://www.inajphotography.com/booking',
     });
@@ -180,22 +237,16 @@ async function generatePDF(data) {
     .text('www.inajphotography.com/booking', 50, cy, {
       align: 'center', width: pw, link: 'https://www.inajphotography.com/booking',
     });
-  cy += 28;
+  cy += 24;
 
   doc.fontSize(10).fillColor(grey).font('Helvetica')
-    .text('Follow @inajphotography on Instagram', 50, cy, {
-      align: 'center', width: pw, link: 'https://instagram.com/inajphotography',
-    });
-  cy += 18;
-  doc.fontSize(10).fillColor(grey).font('Helvetica')
-    .text('Find out more about the experience', 50, cy, {
+    .text('See session details: www.inajphotography.com/session-info', 50, cy, {
       align: 'center', width: pw, link: 'https://www.inajphotography.com/session-info',
     });
-  cy += 32;
+  cy += 28;
 
-  // Footer
   doc.fontSize(9).fillColor(grey).font('Helvetica')
-    .text('Ina J Photography | Canberra, Australia', 50, cy, { align: 'center', width: pw });
+    .text('Ina J Photography | Canberra, Australia | @inajphotography', 50, cy, { align: 'center', width: pw });
 
   doc.end();
 
@@ -207,6 +258,9 @@ async function generatePDF(data) {
 // --- EMAILS ---
 
 function buildUserEmailHTML(data) {
+  const dogName = data.user.dogName;
+  const dogRef = dogName ? `${dogName}'s` : 'your dog\u2019s';
+
   return `<!DOCTYPE html><html><head><style>
     body{font-family:'Helvetica Neue',Arial,sans-serif;color:#232817;background:#F7F4ED;margin:0;padding:0}
     .container{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden}
@@ -221,13 +275,13 @@ function buildUserEmailHTML(data) {
     <div class="header"><h1>Ina J Photography</h1><p>Your Emotional Vision Board</p></div>
     <div class="content">
       <p>Hi ${data.user.name},</p>
-      <p>Your personalised vision board is attached! This is a beautiful visual summary of your perfect photography session\u2014the moods, settings, and styles that resonate most with you.</p>
-      <p>When you\u2019re ready to bring this vision to life, we\u2019d love to chat about how we can capture your dog\u2019s unique soul in a way that honors your bond.</p>
-      <p style="text-align:center"><a href="https://www.inajphotography.com/booking" class="cta">Schedule Your Complimentary Consultation</a></p>
-      <p>Or explore more of our work on <a href="https://instagram.com/inajphotography" style="color:#CA5E3C">Instagram</a>.</p>
+      <p>Your personalised vision board is attached! It\u2019s a beautiful snapshot of the session you\u2019re dreaming of \u2014 the moods, settings, and moments that matter most to you.</p>
+      <p>Your vision board gives us a clear starting point. In your complimentary consultation call, we\u2019ll turn this into a real session plan \u2014 including the best location, mood, timing, and photo focus for ${dogRef} unique personality.</p>
+      <p style="text-align:center"><a href="https://www.inajphotography.com/booking" class="cta">Book Your Complimentary Consultation Call</a></p>
+      <p>Or <a href="https://www.inajphotography.com/session-info" style="color:#CA5E3C">see session details</a> to learn more about the experience.</p>
       <p>With warmth,<br>Ina J Photography</p>
     </div>
-    <div class="footer"><p>Ina J Photography | Canberra, Australia</p><p><a href="https://www.inajphotography.com" style="color:#CA5E3C">www.inajphotography.com</a></p></div>
+    <div class="footer"><p>Ina J Photography | Canberra, Australia</p><p><a href="https://www.inajphotography.com" style="color:#CA5E3C">www.inajphotography.com</a> &middot; <a href="https://instagram.com/inajphotography" style="color:#CA5E3C">@inajphotography</a></p></div>
   </div></div></body></html>`;
 }
 
@@ -251,11 +305,12 @@ function buildBusinessEmailHTML(data) {
     <h3>Contact Information</h3>
     <p><strong>Name:</strong> ${user.name}</p>
     <p><strong>Email:</strong> <a href="mailto:${user.email}">${user.email}</a></p>
+    ${user.dogName ? `<p><strong>Dog\u2019s name:</strong> ${user.dogName}</p>` : ''}
     <h3>Their Vision</h3><h4>Selected Images & Annotations</h4>${selectionsHTML}
-    ${intentionsHTML ? `<h4>Emotional Intentions</h4><ul>${intentionsHTML}</ul>` : ''}
+    ${intentionsHTML ? `<h4>Core Desires</h4><ul>${intentionsHTML}</ul>` : ''}
     <p>Their vision board PDF is attached.</p>
     <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
-    <p style="font-size:12px;color:#7A7A7A"><strong>Next steps:</strong> Follow up with your nurture sequence.<br>
+    <p style="font-size:12px;color:#7A7A7A"><strong>Next steps:</strong> Follow up with consultation call invite.<br>
     Submitted: ${new Date(submissionTimestamp).toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</p>
   </body></html>`;
 }
@@ -292,17 +347,23 @@ async function addContactToBrevo(data) {
   const { user, visionBoard } = data;
   const nameParts = user.name.trim().split(' ');
 
+  const attributes = {
+    FIRSTNAME: nameParts[0] || '',
+    LASTNAME: nameParts.slice(1).join(' ') || '',
+    VISION_BOARD_SUBMITTED: true,
+    SUBMISSION_DATE: data.submissionTimestamp,
+    MOODS: [...new Set(visionBoard.selections.map(s => s.mood))].join(','),
+    SETTINGS: [...new Set(visionBoard.selections.map(s => s.setting))].join(','),
+    STYLES: [...new Set(visionBoard.selections.map(s => s.style))].join(','),
+  };
+
+  if (user.dogName) {
+    attributes.DOG_NAME = user.dogName;
+  }
+
   await axios.post('https://api.brevo.com/v3/contacts', {
     email: user.email,
-    attributes: {
-      FIRSTNAME: nameParts[0] || '',
-      LASTNAME: nameParts.slice(1).join(' ') || '',
-      VISION_BOARD_SUBMITTED: true,
-      SUBMISSION_DATE: data.submissionTimestamp,
-      MOODS: [...new Set(visionBoard.selections.map(s => s.mood))].join(','),
-      SETTINGS: [...new Set(visionBoard.selections.map(s => s.setting))].join(','),
-      STYLES: [...new Set(visionBoard.selections.map(s => s.style))].join(','),
-    },
+    attributes,
     updateEnabled: true,
   }, {
     headers: brevoHeaders(),
@@ -317,7 +378,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, email, selections, intentions } = req.body;
+    const { name, email, dogName, selections, intentions } = req.body;
 
     if (!name || !email || !selections || selections.length < 4) {
       return res.status(400).json({ error: 'Please provide name, email, and at least 4 image selections.' });
@@ -327,7 +388,7 @@ export default async function handler(req, res) {
     }
 
     const submissionData = {
-      user: { name, email },
+      user: { name, email, dogName: dogName || '' },
       visionBoard: { selections, intentions: intentions || [] },
       submissionTimestamp: new Date().toISOString(),
     };
@@ -348,33 +409,30 @@ export default async function handler(req, res) {
     const businessEmail = process.env.BUSINESS_EMAIL || 'ina@inajphotography.com';
 
     if (brevoKey) {
-      // User email
       tasks.push(
         sendBrevoEmail({
           to: email,
           fromEmail,
           fromName: 'Ina J Photography',
-          subject: 'Your Emotional Vision Board is Ready!',
+          subject: `Your Vision Board is Ready${dogName ? `, ${name}` : ''}!`,
           html: buildUserEmailHTML(submissionData),
           pdfBuffer,
           pdfFilename: 'Vision-Board.pdf',
         }).catch(err => console.error('User email failed:', err.message))
       );
 
-      // Business email
       tasks.push(
         sendBrevoEmail({
           to: businessEmail,
           fromEmail,
           fromName: 'Vision Board App',
-          subject: `New Vision Board Submission from ${name}`,
+          subject: `New Vision Board: ${name}${dogName ? ` & ${dogName}` : ''}`,
           html: buildBusinessEmailHTML(submissionData),
           pdfBuffer,
           pdfFilename: `Vision-Board-${name.replace(/\s+/g, '-')}.pdf`,
         }).catch(err => console.error('Business email failed:', err.message))
       );
 
-      // Add contact
       tasks.push(
         addContactToBrevo(submissionData).catch(err => console.error('Brevo contact failed:', err.message))
       );

@@ -13,13 +13,13 @@ export default function Welcome() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-playfair font-bold text-dark-green leading-tight mb-8">
-          Imagine the perfect moment with your dog. Let's make it real.
+          Design your dream pet photography session in under 5 minutes.
         </h1>
 
         <p className="text-lg text-secondary-text font-lato leading-relaxed mb-12 max-w-xl mx-auto">
-          Every dog has a unique story to tell. This tool helps you dream up and design
-          the perfect photography session that captures your dog's authentic soul—not just
-          their appearance. Let's create something meaningful together.
+          Pick the images that speak to you, tell us what matters most, and
+          we'll create a personalised session vision board you can keep, share,
+          and bring to your consultation call.
         </p>
 
         <button onClick={nextStep} className="btn-coral text-lg px-10 py-4">
@@ -27,7 +27,7 @@ export default function Welcome() {
         </button>
 
         <p className="mt-8 text-sm text-secondary-text font-lato">
-          Takes about 3-5 minutes to complete
+          Free &middot; takes about 3-5 minutes
         </p>
       </div>
     </div>

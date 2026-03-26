@@ -29,7 +29,7 @@ export default function ThankYou() {
             {[
               'Review your vision board and share it with anyone you\'d like',
               'We\'ll review your preferences and reach out within 24 hours with personalised session options',
-              'Schedule your complimentary consultation to discuss your vision and answer any questions',
+              'Book your complimentary consultation call to discuss your vision and plan your session',
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-7 h-7 bg-coral text-white rounded-full flex items-center justify-center text-sm font-montserrat font-semibold mt-0.5">
@@ -49,30 +49,31 @@ export default function ThankYou() {
             rel="noopener noreferrer"
             className="btn-coral block text-lg py-4"
           >
-            Schedule Your Complimentary Consultation
+            Book Your Complimentary Consultation Call
           </a>
 
-          <div className="flex gap-4">
-            <a
-              href="https://instagram.com/inajphotography"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors text-center"
-            >
-              Explore More of Our Work
-            </a>
-            <a
-              href="https://www.inajphotography.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors text-center"
-            >
-              Visit Our Website
-            </a>
-          </div>
+          <a
+            href="https://www.inajphotography.com/session-info"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors text-center"
+          >
+            See Session Details
+          </a>
         </div>
 
-        <p className="mt-10 text-sm text-secondary-text font-montserrat tracking-wider uppercase">
+        <p className="mt-8 text-sm text-secondary-text font-lato">
+          <a
+            href="https://instagram.com/inajphotography"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-coral hover:underline"
+          >
+            Follow @inajphotography on Instagram
+          </a>
+        </p>
+
+        <p className="mt-6 text-sm text-secondary-text font-montserrat tracking-wider uppercase">
           Ina J Photography
         </p>
       </div>

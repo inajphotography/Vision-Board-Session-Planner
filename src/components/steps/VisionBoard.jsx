@@ -2,16 +2,35 @@ import { useRef } from 'react';
 import useVisionStore from '../../store/useVisionStore';
 
 const intentionQuestions = [
-  'What emotion or personality trait do you want to preserve?',
-  'What feeling do you want to experience when you look at these photos?',
-  'What special moment or connection matters most to you?',
+  'What part of your dog\u2019s personality do you most want to preserve?',
+  'How do you want these photos to feel when you look back on them?',
+  'What connection or moment matters most to capture?',
 ];
 
 export default function VisionBoard() {
-  const { selections, intentions, userName, getSessionBrief, nextStep } = useVisionStore();
+  const { selections, intentions, userName, dogName, getSessionBrief } = useVisionStore();
   const boardRef = useRef(null);
 
   const brief = getSessionBrief();
+
+  // Build a more human, bespoke session brief narrative
+  const buildNarrative = () => {
+    const moodText = brief.moods.join(' and ');
+    const settingText = brief.settings.join(' and ');
+    const dog = dogName || 'your dog';
+
+    let narrative = `This vision leans ${moodText}, with a focus on ${brief.styleDesc} moments in ${settingText} settings.`;
+
+    if (settingText.includes('outdoor') || settingText.includes('garden') || settingText.includes('park')) {
+      narrative += ` A soft outdoor setting would suit this beautifully.`;
+    } else if (settingText.includes('studio') || settingText.includes('indoor')) {
+      narrative += ` A cosy studio session would bring this to life perfectly.`;
+    }
+
+    narrative += ` Your session should prioritise ${dog}'s personality and the bond you share.`;
+
+    return narrative;
+  };
 
   return (
     <div className="min-h-screen px-4 py-12">
@@ -21,7 +40,9 @@ export default function VisionBoard() {
             Your Emotional Vision Board is Ready!
           </h1>
           <p className="text-secondary-text font-lato text-lg">
-            {userName ? `${userName}, here` : 'Here'} is your personalised session vision.
+            {userName
+              ? `Thank you for taking the time to dream about your perfect photography session, ${userName}. Your vision is beautiful, and I can't wait to help make it a reality.`
+              : 'Your vision is beautiful, and we can\'t wait to help make it a reality.'}
           </p>
         </div>
 
@@ -36,32 +57,20 @@ export default function VisionBoard() {
               Session Vision Board
             </h2>
             {userName && (
-              <p className="font-lato text-secondary-text mt-1">Created for {userName}</p>
+              <p className="font-lato text-secondary-text mt-1">
+                Created for {userName}{dogName ? ` & ${dogName}` : ''}
+              </p>
             )}
           </div>
 
-          {/* Image Grid */}
-          <div className={`grid gap-4 mb-8 ${
-            selections.length <= 4 ? 'grid-cols-2' :
-            selections.length <= 6 ? 'grid-cols-2 md:grid-cols-3' :
-            'grid-cols-2 md:grid-cols-4'
-          }`}>
-            {selections.map((sel) => (
-              <div key={sel.imageId} className="space-y-2">
-                <div className="aspect-[3/2] rounded-lg overflow-hidden">
-                  <img
-                    src={sel.imageUrl}
-                    alt={sel.filename}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {sel.annotation && (
-                  <p className="text-sm text-dark-green font-lato italic leading-snug">
-                    "{sel.annotation}"
-                  </p>
-                )}
-              </div>
-            ))}
+          {/* Session Brief */}
+          <div className="mb-8 p-6 bg-dark-green/5 rounded-xl">
+            <h3 className="font-playfair text-lg font-bold text-dark-green mb-3">
+              Your Session Brief
+            </h3>
+            <p className="font-lato text-dark-green leading-relaxed italic">
+              "{buildNarrative()}"
+            </p>
           </div>
 
           {/* Core Desires */}
@@ -90,27 +99,45 @@ export default function VisionBoard() {
             </div>
           )}
 
-          {/* Session Brief */}
-          <div className="p-6 bg-dark-green/5 rounded-xl">
-            <h3 className="font-playfair text-lg font-bold text-dark-green mb-3">
-              Session Brief
+          {/* Image Grid */}
+          <div className="mb-4">
+            <h3 className="font-playfair text-lg font-bold text-dark-green mb-4">
+              Your Selected Inspirations
             </h3>
-            <p className="font-lato text-dark-green leading-relaxed">
-              Your vision focuses on a{' '}
-              <strong>{brief.moods.join(' and ')}</strong> mood in{' '}
-              <strong>{brief.settings.join(' and ')}</strong> settings, capturing a mix of{' '}
-              <strong>{brief.styleDesc}</strong> moments.
-            </p>
+            <div className={`grid gap-4 ${
+              selections.length <= 4 ? 'grid-cols-2' :
+              selections.length <= 6 ? 'grid-cols-2 md:grid-cols-3' :
+              'grid-cols-2 md:grid-cols-4'
+            }`}>
+              {selections.map((sel) => (
+                <div key={sel.imageId} className="space-y-2">
+                  <div className="aspect-[3/2] rounded-lg overflow-hidden">
+                    <img
+                      src={sel.imageUrl}
+                      alt={sel.filename}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {sel.annotation && (
+                    <p className="text-sm text-dark-green font-lato italic leading-snug">
+                      "{sel.annotation}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* CTAs */}
+        {/* Bridge + CTAs */}
         <div className="text-center bg-ivory rounded-2xl p-8 sm:p-10">
           <h3 className="font-playfair text-2xl font-bold text-dark-green mb-3">
             Ready to Bring This Vision to Life?
           </h3>
-          <p className="text-secondary-text font-lato text-lg mb-6 max-w-lg mx-auto">
-            Let's chat about how we can capture your dog's unique soul in a way that honours your bond.
+          <p className="text-secondary-text font-lato text-base mb-8 max-w-lg mx-auto leading-relaxed">
+            Your vision board gives us a clear starting point. In your complimentary
+            consultation call, we'll turn this into a real session plan — including the
+            best location, mood, timing, and photo focus for {dogName || 'your dog'}.
           </p>
           <div className="space-y-4">
             <a
@@ -119,15 +146,7 @@ export default function VisionBoard() {
               rel="noopener noreferrer"
               className="btn-coral text-lg px-10 py-4 block"
             >
-              Schedule Your Complimentary Consultation
-            </a>
-            <a
-              href="https://instagram.com/inajphotography"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors"
-            >
-              Follow @inajphotography on Instagram
+              Book Your Complimentary Consultation Call
             </a>
             <a
               href="https://www.inajphotography.com/session-info"
@@ -135,9 +154,19 @@ export default function VisionBoard() {
               rel="noopener noreferrer"
               className="block py-3 px-6 border border-gray-300 rounded-lg font-montserrat font-medium text-dark-green hover:bg-gray-50 transition-colors"
             >
-              Find out More about the Experience
+              See Session Details
             </a>
           </div>
+          <p className="text-secondary-text font-lato text-sm mt-6">
+            <a
+              href="https://instagram.com/inajphotography"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-coral hover:underline"
+            >
+              Follow @inajphotography on Instagram
+            </a>
+          </p>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import useVisionStore from '../../store/useVisionStore';
+import { artworkOptions } from './ArtworkPreference';
 
 const intentionQuestions = [
   'What part of your dog\u2019s personality do you most want to preserve?',
@@ -8,7 +9,7 @@ const intentionQuestions = [
 ];
 
 export default function VisionBoard() {
-  const { selections, intentions, userName, dogName, getSessionBrief } = useVisionStore();
+  const { selections, intentions, userName, dogName, artworkPreferences, getSessionBrief } = useVisionStore();
   const boardRef = useRef(null);
 
   const brief = getSessionBrief();
@@ -95,6 +96,26 @@ export default function VisionBoard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Artwork Preferences */}
+          {artworkPreferences.length > 0 && (
+            <div className="mb-8 p-6 bg-coral/5 rounded-xl">
+              <h3 className="font-playfair text-lg font-bold text-dark-green mb-3">
+                How You'd Like to Enjoy Your Photos
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {artworkPreferences.map((prefId) => {
+                  const option = artworkOptions.find(o => o.id === prefId);
+                  return option ? (
+                    <span key={prefId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-montserrat text-dark-green border border-coral/20">
+                      <span className="text-coral">&#9830;</span>
+                      {option.title}
+                    </span>
+                  ) : null;
+                })}
               </div>
             </div>
           )}

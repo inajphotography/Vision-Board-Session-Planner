@@ -16,6 +16,15 @@ async function downloadImages(selections) {
   return results.map(r => r.status === 'fulfilled' ? r.value : null);
 }
 
+const artworkLabels = {
+  'hero-wall-art': 'Hero Wall Art',
+  'wall-collection': 'Wall Collection',
+  'storyboard-collage': 'Storyboard Collage',
+  'portrait-box': 'Portrait Box',
+  'album': 'Album',
+  'gift-prints': 'Gift Prints',
+};
+
 const intentionQuestions = [
   'What part of your dog\u2019s personality do you most want to preserve?',
   'How do you want these photos to feel when you look back on them?',
@@ -210,6 +219,30 @@ async function generatePDF(data) {
     cy += 10;
   }
 
+  // Artwork Preferences section
+  const artPrefs = (visionBoard.artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
+  if (artPrefs.length > 0) {
+    if (cy > doc.page.height - 120) {
+      doc.addPage();
+      cy = 50;
+    }
+
+    doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
+      .text('How You’d Like to Enjoy Your Photos', 50, cy, { width: pw });
+    cy += 28;
+
+    doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
+    cy += 16;
+
+    artPrefs.forEach((label) => {
+      doc.fontSize(12).fillColor(coral).font('Helvetica')
+        .text('♦ ', 50, cy, { continued: true });
+      doc.fillColor(darkGreen).font('Helvetica').text(label);
+      cy += 20;
+    });
+    cy += 10;
+  }
+
   // CTA section
   if (cy > doc.page.height - 140) {
     doc.addPage();
@@ -308,6 +341,7 @@ function buildBusinessEmailHTML(data) {
     ${user.dogName ? `<p><strong>Dog\u2019s name:</strong> ${user.dogName}</p>` : ''}
     <h3>Their Vision</h3><h4>Selected Images & Annotations</h4>${selectionsHTML}
     ${intentionsHTML ? `<h4>Core Desires</h4><ul>${intentionsHTML}</ul>` : ''}
+    ${(visionBoard.artworkPreferences || []).length > 0 ? `<h4>Artwork Interests</h4><ul>${visionBoard.artworkPreferences.map(id => artworkLabels[id]).filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
     <p>Their vision board PDF is attached.</p>
     <hr style="border:0;border-top:1px solid #ddd;margin:24px 0">
     <p style="font-size:12px;color:#7A7A7A"><strong>Next steps:</strong> Follow up with consultation call invite.<br>
@@ -355,6 +389,7 @@ async function addContactToBrevo(data) {
     MOODS: [...new Set(visionBoard.selections.map(s => s.mood))].join(','),
     SETTINGS: [...new Set(visionBoard.selections.map(s => s.setting))].join(','),
     STYLES: [...new Set(visionBoard.selections.map(s => s.style))].join(','),
+    ARTWORK_INTERESTS: (visionBoard.artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean).join(','),
   };
 
   if (user.dogName) {
@@ -378,7 +413,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, email, dogName, selections, intentions } = req.body;
+    const { name, email, dogName, selections, intentions, artworkPreferences } = req.body;
 
     if (!name || !email || !selections || selections.length < 4) {
       return res.status(400).json({ error: 'Please provide name, email, and at least 4 image selections.' });
@@ -389,7 +424,7 @@ export default async function handler(req, res) {
 
     const submissionData = {
       user: { name, email, dogName: dogName || '' },
-      visionBoard: { selections, intentions: intentions || [] },
+      visionBoard: { selections, intentions: intentions || [], artworkPreferences: artworkPreferences || [] },
       submissionTimestamp: new Date().toISOString(),
     };
 

@@ -25,6 +25,15 @@ const artworkLabels = {
   'gift-prints': 'Matted Fine Art Prints',
 };
 
+const artworkImageUrls = {
+  'hero-wall-art': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2e76a6dd1b69a1b692e.jpeg',
+  'wall-collection': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2cade4900e889aba617.jpg',
+  'storyboard-collage': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c911de4900e889ac22ab.jpg',
+  'portrait-box': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2cfde4900e889aba6ef.jpg',
+  'album': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c592c50697c4116ca653.jpg',
+  'gift-prints': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c9546a6dd1b69a1bef4f.jpg',
+};
+
 const intentionQuestions = [
   'What part of your dog\u2019s personality do you most want to preserve?',
   'How do you want these photos to feel when you look back on them?',
@@ -170,9 +179,11 @@ async function generatePDF(data) {
   cy += 16;
 
   // Narrative paragraph
-  doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Oblique')
-    .text(`\u201C${brief.narrative}\u201D`, 50, cy, { width: pw, lineGap: 3 });
-  cy += 50;
+  doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Oblique');
+  const narrativeText = `"${brief.narrative}"`;
+  const narrativeHeight = doc.heightOfString(narrativeText, { width: pw, lineGap: 3 });
+  doc.text(narrativeText, 50, cy, { width: pw, lineGap: 3 });
+  cy += narrativeHeight + 20;
 
   // Structured details
   const briefItems = [
@@ -188,17 +199,23 @@ async function generatePDF(data) {
   briefItems.forEach(([label, value]) => {
     doc.fontSize(9).fillColor(grey).font('Helvetica-Bold')
       .text(label.toUpperCase(), 50, cy, { width: pw });
-    cy += 12;
-    doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
-      .text(value, 50, cy, { width: pw, lineGap: 2 });
-    cy += 20;
+    cy += 14;
+    doc.fontSize(11).fillColor(darkGreen).font('Helvetica');
+    const valHeight = doc.heightOfString(value, { width: pw, lineGap: 2 });
+    doc.text(value, 50, cy, { width: pw, lineGap: 2 });
+    cy += valHeight + 10;
   });
 
-  cy += 8;
+  cy += 16;
 
   // Core Desires section
   const filledIntentions = (intentions || []).filter(i => i && i.trim());
   if (filledIntentions.length > 0) {
+    if (cy > doc.page.height - 120) {
+      doc.addPage();
+      cy = 50;
+    }
+
     doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
       .text('Your Core Desires', 50, cy, { width: pw });
     cy += 28;
@@ -211,35 +228,73 @@ async function generatePDF(data) {
         .text(intentionQuestions[idx] || '', 50, cy, { width: pw });
       cy += 14;
 
-      doc.fontSize(12).fillColor(coral).font('Helvetica')
-        .text('\u2665 ', 50, cy, { continued: true });
-      doc.fillColor(darkGreen).font('Helvetica').text(intention);
+      doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
+        .text(`- ${intention}`, 50, cy, { width: pw });
       cy += 22;
     });
-    cy += 10;
+    cy += 16;
   }
 
-  // Artwork Preferences section
-  const artPrefs = (visionBoard.artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
-  if (artPrefs.length > 0) {
-    if (cy > doc.page.height - 120) {
+  // Artwork Preferences section with images
+  const artPrefIds = (visionBoard.artworkPreferences || []).filter(id => artworkLabels[id]);
+  if (artPrefIds.length > 0) {
+    if (cy > doc.page.height - 200) {
       doc.addPage();
       cy = 50;
     }
 
     doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
-      .text('How You’d Like to Enjoy Your Photos', 50, cy, { width: pw });
+      .text('How You Want to Enjoy Your Photos', 50, cy, { width: pw });
     cy += 28;
 
     doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
     cy += 16;
 
-    artPrefs.forEach((label) => {
-      doc.fontSize(12).fillColor(coral).font('Helvetica')
-        .text('♦ ', 50, cy, { continued: true });
-      doc.fillColor(darkGreen).font('Helvetica').text(label);
-      cy += 20;
-    });
+    const artImageResults = await Promise.allSettled(
+      artPrefIds.map(async (id) => {
+        const url = artworkImageUrls[id];
+        if (!url) return null;
+        const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 });
+        return Buffer.from(response.data);
+      })
+    );
+    const artImageBuffers = artImageResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+    const artCols = 3;
+    const artGap = 10;
+    const artImgWidth = (pw - artGap * (artCols - 1)) / artCols;
+    const artImgHeight = artImgWidth * 0.75;
+
+    for (let i = 0; i < artPrefIds.length; i++) {
+      const col = i % artCols;
+      const x = 50 + col * (artImgWidth + artGap);
+
+      if (col === 0 && cy + artImgHeight + 24 > doc.page.height - 50) {
+        doc.addPage();
+        cy = 50;
+      }
+
+      if (artImageBuffers[i]) {
+        try {
+          doc.save();
+          doc.roundedRect(x, cy, artImgWidth, artImgHeight, 4).clip();
+          doc.image(artImageBuffers[i], x, cy, {
+            width: artImgWidth, height: artImgHeight,
+            fit: [artImgWidth, artImgHeight], align: 'center', valign: 'center',
+          });
+          doc.restore();
+        } catch {
+          doc.roundedRect(x, cy, artImgWidth, artImgHeight, 4).fill('#f0f0f0');
+        }
+      }
+
+      doc.fontSize(8).fillColor(darkGreen).font('Helvetica-Bold')
+        .text(artworkLabels[artPrefIds[i]], x, cy + artImgHeight + 4, { width: artImgWidth, align: 'center' });
+
+      if (col === artCols - 1 || i === artPrefIds.length - 1) {
+        cy += artImgHeight + 24;
+      }
+    }
     cy += 10;
   }
 

@@ -102,18 +102,29 @@ export default function VisionBoard() {
 
           {/* Artwork Preferences */}
           {artworkPreferences.length > 0 && (
-            <div className="mb-8 p-6 bg-coral/5 rounded-xl">
-              <h3 className="font-playfair text-lg font-bold text-dark-green mb-3">
-                How You'd Like to Enjoy Your Photos
+            <div className="mb-8">
+              <h3 className="font-playfair text-lg font-bold text-dark-green mb-4">
+                How You Want to Enjoy Your Photos
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className={`grid gap-3 ${
+                artworkPreferences.length <= 2 ? 'grid-cols-2' :
+                'grid-cols-2 md:grid-cols-3'
+              }`}>
                 {artworkPreferences.map((prefId) => {
                   const option = artworkOptions.find(o => o.id === prefId);
                   return option ? (
-                    <span key={prefId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-montserrat text-dark-green border border-coral/20">
-                      <span className="text-coral">&#9830;</span>
-                      {option.title}
-                    </span>
+                    <div key={prefId} className="rounded-lg overflow-hidden border border-gray-100">
+                      <div className="aspect-[4/3] overflow-hidden">
+                        <img
+                          src={option.imageUrl}
+                          alt={option.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="text-center font-montserrat text-xs font-semibold text-dark-green py-2">
+                        {option.title}
+                      </p>
+                    </div>
                   ) : null;
                 })}
               </div>

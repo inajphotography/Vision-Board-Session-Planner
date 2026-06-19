@@ -22,7 +22,7 @@ const artworkLabels = {
   'storyboard-collage': 'Storyboard Collage',
   'portrait-box': 'Portrait Box',
   'album': 'Album',
-  'gift-prints': 'Gift Prints',
+  'gift-prints': 'Matted Fine Art Prints',
 };
 
 const intentionQuestions = [

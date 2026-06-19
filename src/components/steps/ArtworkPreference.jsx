@@ -16,7 +16,7 @@ const artworkOptions = [
   {
     id: 'storyboard-collage',
     title: 'Storyboard Collage',
-    description: 'A curated multi-image layout on a single frame — your session story at a glance.',
+    description: 'A curated multi-image layout on a single frame. Your session story at a glance.',
     imageUrl: 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c911de4900e889ac22ab.jpg',
   },
   {
@@ -112,7 +112,7 @@ export default function ArtworkPreference() {
             onClick={nextStep}
             className="btn-coral px-8 py-3"
           >
-            Continue
+            Generate My Vision Board
           </button>
         </div>
 

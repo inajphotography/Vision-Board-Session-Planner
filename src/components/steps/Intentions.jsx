@@ -64,7 +64,7 @@ export default function Intentions() {
             disabled={!hasAtLeastOne}
             className="flex-1 btn-coral"
           >
-            Generate My Vision Board
+            Continue
           </button>
         </div>
       </div>

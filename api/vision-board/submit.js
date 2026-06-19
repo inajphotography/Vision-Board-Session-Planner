@@ -40,7 +40,7 @@ const intentionQuestions = [
   'What connection or moment matters most to capture?',
 ];
 
-function buildBespokeNarrative(selections, intentions, dogName) {
+function extractSessionData(selections, intentions, dogName) {
   const moodCounts = {};
   const settingCounts = {};
   selections.forEach(s => {
@@ -56,6 +56,12 @@ function buildBespokeNarrative(selections, intentions, dogName) {
   const moodText = topMoods.join(' and ');
   const settingText = topSettings.join(' and ');
 
+  return { topMoods, topSettings, styleDesc, dog, moodText, settingText };
+}
+
+function buildFallbackNarrative(selections, intentions, dogName, artworkPreferences) {
+  const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
+
   let narrative = `This vision leans ${moodText}, with a mix of ${styleDesc} moments in ${settingText} settings.`;
 
   const settingLower = settingText.toLowerCase();
@@ -67,7 +73,63 @@ function buildBespokeNarrative(selections, intentions, dogName) {
 
   narrative += ` Your session should prioritise ${dog}'s personality and the bond you share.`;
 
-  // Build structured brief data for PDF
+  return narrative;
+}
+
+async function generateAINarrative(selections, intentions, dogName, artworkPreferences) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const { moodText, settingText, styleDesc, dog } = extractSessionData(selections, intentions, dogName);
+  const filledIntentions = (intentions || []).filter(i => i && i.trim());
+  const artworkNames = (artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
+
+  const prompt = `You are writing a personalised session brief for a pet photography client of Ina J Photography in Canberra, Australia. Write as Ina — warm, genuine, and knowledgeable. Use Australian spelling (e.g. personalised, colour, prioritise).
+
+Based on their vision board selections, write a 3-4 paragraph session brief that:
+1. Reflects the emotional tone they're drawn to and what that reveals about what matters to them
+2. Recommends a setting and style approach with practical reasoning (time of day, location type, energy level)
+3. Connects their desires to how the session will feel — reassure them their dog doesn't need to be "well-behaved"
+${artworkNames.length > 0 ? `4. Briefly mention how their chosen artwork formats (${artworkNames.join(', ')}) will influence the way we shoot — e.g. hero wall art needs one powerful composition, albums allow us to capture the full story` : ''}
+
+Keep it under 200 words. No bullet points. No headings. Just flowing, warm paragraphs. Don't use the word "capturing" more than once. Don't start with "Based on your selections".
+
+Their data:
+- Dog's name: ${dog}
+- Dominant moods: ${moodText}
+- Preferred settings: ${settingText}
+- Style balance: ${styleDesc}
+${filledIntentions.length > 0 ? `- Core desires: ${filledIntentions.join('; ')}` : ''}
+${artworkNames.length > 0 ? `- Artwork interests: ${artworkNames.join(', ')}` : ''}`;
+
+  try {
+    const response = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    }, {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    const text = response.data?.content?.[0]?.text;
+    return text || null;
+  } catch (err) {
+    console.error('AI narrative generation failed:', err.message);
+    return null;
+  }
+}
+
+async function buildBespokeNarrative(selections, intentions, dogName, artworkPreferences) {
+  const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
+
+  const aiNarrative = await generateAINarrative(selections, intentions, dogName, artworkPreferences);
+  const narrative = aiNarrative || buildFallbackNarrative(selections, intentions, dogName, artworkPreferences);
+
   return {
     narrative,
     mood: moodText,
@@ -76,7 +138,7 @@ function buildBespokeNarrative(selections, intentions, dogName) {
     emotionalFocus: (intentions || []).filter(i => i && i.trim()).length > 0
       ? intentions.filter(i => i && i.trim())[0]
       : null,
-    planningFocus: `Focus on capturing ${dog}'s authentic personality in a ${moodText}, ${settingText} environment.`,
+    planningFocus: `Focus on ${dog}'s authentic personality in a ${moodText}, ${settingText} environment.`,
   };
 }
 
@@ -168,7 +230,8 @@ async function generatePDF(data) {
   doc.addPage();
   let cy = 50;
 
-  const brief = buildBespokeNarrative(selections, intentions, dogName);
+  const artPreferences = visionBoard.artworkPreferences || [];
+  const brief = await buildBespokeNarrative(selections, intentions, dogName, artPreferences);
 
   // Session Brief — structured and human
   doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
@@ -295,7 +358,12 @@ async function generatePDF(data) {
         cy += artImgHeight + 24;
       }
     }
-    cy += 10;
+    doc.fontSize(10).fillColor(coral).font('Helvetica')
+      .text('View all fine art products: www.inajphotography.com/fine-art-products', 50, cy, {
+        width: pw, align: 'center',
+        link: 'https://www.inajphotography.com/fine-art-products',
+      });
+    cy += 24;
   }
 
   // CTA section

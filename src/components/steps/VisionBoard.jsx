@@ -9,13 +9,12 @@ const intentionQuestions = [
 ];
 
 export default function VisionBoard() {
-  const { selections, intentions, userName, dogName, artworkPreferences, getSessionBrief } = useVisionStore();
+  const { selections, intentions, userName, dogName, artworkPreferences, sessionNarrative, getSessionBrief } = useVisionStore();
   const boardRef = useRef(null);
 
   const brief = getSessionBrief();
 
-  // Build a more human, bespoke session brief narrative
-  const buildNarrative = () => {
+  const buildFallbackNarrative = () => {
     const moodText = brief.moods.join(' and ');
     const settingText = brief.settings.join(' and ');
     const dog = dogName || 'your dog';
@@ -32,6 +31,8 @@ export default function VisionBoard() {
 
     return narrative;
   };
+
+  const narrative = sessionNarrative || buildFallbackNarrative();
 
   return (
     <div className="min-h-screen px-4 py-12">
@@ -69,8 +70,8 @@ export default function VisionBoard() {
             <h3 className="font-playfair text-lg font-bold text-dark-green mb-3">
               Your Session Brief
             </h3>
-            <p className="font-lato text-dark-green leading-relaxed italic">
-              "{buildNarrative()}"
+            <p className="font-lato text-dark-green leading-relaxed italic whitespace-pre-line">
+              {narrative}
             </p>
           </div>
 

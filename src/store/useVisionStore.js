@@ -15,6 +15,7 @@ const useVisionStore = create((set, get) => ({
   },
   isSubmitting: false,
   submitError: null,
+  sessionNarrative: null,
 
   setStep: (step) => set({ currentStep: step }),
   nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 8) })),
@@ -86,6 +87,7 @@ const useVisionStore = create((set, get) => ({
   })),
   setSubmitting: (val) => set({ isSubmitting: val }),
   setSubmitError: (err) => set({ submitError: err }),
+  setSessionNarrative: (narrative) => set({ sessionNarrative: narrative }),
 
   getSessionBrief: () => {
     const { selections } = get();

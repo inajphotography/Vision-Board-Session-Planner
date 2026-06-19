@@ -248,8 +248,7 @@ async function generatePDF(data) {
   doc.addPage();
   let cy = 50;
 
-  const artPreferences = visionBoard.artworkPreferences || [];
-  const brief = await buildBespokeNarrative(selections, intentions, dogName, artPreferences);
+  const brief = data.brief;
 
   // Session Brief — structured and human
   doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
@@ -376,12 +375,6 @@ async function generatePDF(data) {
         cy += artImgHeight + 24;
       }
     }
-    doc.fontSize(10).fillColor(coral).font('Helvetica')
-      .text('View all fine art products: www.inajphotography.com/fine-art-products', 50, cy, {
-        width: pw, align: 'center',
-        link: 'https://www.inajphotography.com/fine-art-products',
-      });
-    cy += 24;
   }
 
   // CTA section
@@ -406,16 +399,19 @@ async function generatePDF(data) {
       align: 'center', width: pw,
       link: 'https://www.inajphotography.com/booking',
     });
-  cy += 20;
-  doc.fontSize(10).fillColor(darkGreen).font('Helvetica')
-    .text('www.inajphotography.com/booking', 50, cy, {
-      align: 'center', width: pw, link: 'https://www.inajphotography.com/booking',
+  cy += 28;
+
+  doc.fontSize(11).fillColor(coral).font('Helvetica')
+    .text('See Session Details', 50, cy, {
+      align: 'center', width: pw,
+      link: 'https://www.inajphotography.com/session-info',
     });
   cy += 24;
 
-  doc.fontSize(10).fillColor(grey).font('Helvetica')
-    .text('See session details: www.inajphotography.com/session-info', 50, cy, {
-      align: 'center', width: pw, link: 'https://www.inajphotography.com/session-info',
+  doc.fontSize(11).fillColor(coral).font('Helvetica')
+    .text('View Fine Art Products', 50, cy, {
+      align: 'center', width: pw,
+      link: 'https://www.inajphotography.com/fine-art-products',
     });
   cy += 28;
 
@@ -569,6 +565,12 @@ export default async function handler(req, res) {
       submissionTimestamp: new Date().toISOString(),
     };
 
+    // Generate AI narrative
+    const brief = await buildBespokeNarrative(
+      selections, intentions || [], dogName || '', artworkPreferences || []
+    );
+    submissionData.brief = brief;
+
     // Generate PDF
     let pdfBuffer;
     try {
@@ -618,7 +620,7 @@ export default async function handler(req, res) {
 
     await Promise.allSettled(tasks);
 
-    return res.status(200).json({ success: true, message: 'Vision board submitted successfully.' });
+    return res.status(200).json({ success: true, narrative: brief.narrative });
   } catch (err) {
     console.error('Submission error:', err);
     return res.status(500).json({ error: 'An error occurred. Please try again.' });

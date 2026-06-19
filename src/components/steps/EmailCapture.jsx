@@ -7,7 +7,7 @@ export default function EmailCapture() {
     userName, setUserName, userEmail, setUserEmail,
     dogName, setDogName,
     selections, intentions, artworkPreferences, nextStep, prevStep,
-    isSubmitting, setSubmitting, setSubmitError, submitError,
+    isSubmitting, setSubmitting, setSubmitError, submitError, setSessionNarrative,
   } = useVisionStore();
 
   const [emailValid, setEmailValid] = useState(true);
@@ -35,7 +35,7 @@ export default function EmailCapture() {
     setSubmitError(null);
 
     try {
-      await axios.post('/api/vision-board/submit', {
+      const response = await axios.post('/api/vision-board/submit', {
         name: userName.trim(),
         email: userEmail.trim(),
         dogName: dogName.trim() || undefined,
@@ -43,6 +43,9 @@ export default function EmailCapture() {
         intentions: intentions.filter(i => i.trim()),
         artworkPreferences,
       });
+      if (response.data?.narrative) {
+        setSessionNarrative(response.data.narrative);
+      }
       nextStep();
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Something went wrong. Please try again.');

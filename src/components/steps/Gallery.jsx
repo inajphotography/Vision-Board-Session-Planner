@@ -27,11 +27,8 @@ export default function Gallery() {
     } else {
       if (selections.length >= 8) return;
       toggleImage(image);
+      setAnnotatingImage(image);
     }
-  };
-
-  const handleAnnotate = (image) => {
-    setAnnotatingImage(image);
   };
 
   const handleAnnotationClose = () => {
@@ -124,7 +121,7 @@ export default function Gallery() {
                         src={sel.imageUrl}
                         alt={sel.filename}
                         className="w-14 h-14 rounded-lg object-cover cursor-pointer"
-                        onClick={() => fullImage && handleAnnotate(fullImage)}
+                        onClick={() => fullImage && setAnnotatingImage(fullImage)}
                       />
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveFromTray(sel.imageId); }}

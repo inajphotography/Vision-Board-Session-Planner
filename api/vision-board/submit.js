@@ -76,7 +76,7 @@ function buildFallbackNarrative(selections, intentions, dogName, artworkPreferen
   return narrative;
 }
 
-async function generateAINarrative(selections, intentions, dogName, artworkPreferences) {
+async function generateAINarrative(selections, intentions, dogName, artworkPreferences, clientName) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -84,7 +84,11 @@ async function generateAINarrative(selections, intentions, dogName, artworkPrefe
   const filledIntentions = (intentions || []).filter(i => i && i.trim());
   const artworkNames = (artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
 
-  const prompt = `You are writing a personalised session brief for a pet photography client of Ina J Photography in Canberra, Australia. You are writing as Ina Jalil, the photographer.
+  const clientFirst = (clientName || '').split(' ')[0] || 'there';
+
+  const prompt = `You are writing a personalised session brief for a pet photography client of Ina J Photography in Canberra, Australia. You are writing as Ina Jalil, the photographer, directly to the client.
+
+IMPORTANT: The CLIENT (the human person) is ${clientName || 'the client'}. The DOG(S) being photographed: ${dog}. Address the brief to the human client, not to the dog. The dog is the subject of the photography session, the client is the person you are speaking to.
 
 VOICE AND TONE:
 - Register: warm, emotional, intimate, celebrating the bond between dog and owner. More personal, more feeling.
@@ -93,6 +97,8 @@ VOICE AND TONE:
 - Warm but not gushy. Emotionally grounded, not performative. No melodrama.
 - Full sentences flowing into each other in proper paragraphs. Not chopped fragments.
 - Australian English always: personalised, colour, prioritise, centre, honour, cosy.
+- Do not open with "Dear ${clientFirst}" or any letter-style greeting. Jump straight into the brief.
+- Do not sign off with "Warmly, Ina" or any letter-style closing. Just end naturally.
 
 STRICT RULES:
 - No em dashes anywhere. Use a period or comma instead, always.
@@ -113,7 +119,8 @@ ${artworkNames.length > 0 ? `4. Mention how their chosen artwork formats (${artw
 Keep it under 200 words total.
 
 Their vision board data:
-- Dog's name: ${dog}
+- Client name: ${clientName || 'not provided'}
+- Dog's name: ${dog} (this is the DOG, not a person)
 - Dominant moods: ${moodText}
 - Preferred settings: ${settingText}
 - Style balance: ${styleDesc}
@@ -142,10 +149,10 @@ ${artworkNames.length > 0 ? `- Artwork interests: ${artworkNames.join(', ')}` : 
   }
 }
 
-async function buildBespokeNarrative(selections, intentions, dogName, artworkPreferences) {
+async function buildBespokeNarrative(selections, intentions, dogName, artworkPreferences, clientName) {
   const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
 
-  const aiNarrative = await generateAINarrative(selections, intentions, dogName, artworkPreferences);
+  const aiNarrative = await generateAINarrative(selections, intentions, dogName, artworkPreferences, clientName);
   const narrative = aiNarrative || buildFallbackNarrative(selections, intentions, dogName, artworkPreferences);
 
   return {
@@ -567,7 +574,7 @@ export default async function handler(req, res) {
 
     // Generate AI narrative
     const brief = await buildBespokeNarrative(
-      selections, intentions || [], dogName || '', artworkPreferences || []
+      selections, intentions || [], dogName || '', artworkPreferences || [], name
     );
     submissionData.brief = brief;
 

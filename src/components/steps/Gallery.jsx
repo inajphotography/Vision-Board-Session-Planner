@@ -128,7 +128,7 @@ export default function Gallery() {
                       />
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveFromTray(sel.imageId); }}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-dark-green text-white rounded-full flex items-center justify-center text-xs hover:bg-coral transition-colors"
+                        className="absolute -top-2 -right-2 w-7 h-7 bg-dark-green text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-coral transition-colors shadow-md"
                       >
                         ×
                       </button>

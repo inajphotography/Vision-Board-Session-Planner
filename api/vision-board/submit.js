@@ -25,13 +25,22 @@ const artworkLabels = {
   'gift-prints': 'Matted Fine Art Prints',
 };
 
+const artworkImageUrls = {
+  'hero-wall-art': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2e76a6dd1b69a1b692e.jpeg',
+  'wall-collection': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2cade4900e889aba617.jpg',
+  'storyboard-collage': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c911de4900e889ac22ab.jpg',
+  'portrait-box': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c2cfde4900e889aba6ef.jpg',
+  'album': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c592c50697c4116ca653.jpg',
+  'gift-prints': 'https://assets.cdn.filesafe.space/zjeSHehmlKxLOGbKffZc/media/6a34c9546a6dd1b69a1bef4f.jpg',
+};
+
 const intentionQuestions = [
   'What part of your dog\u2019s personality do you most want to preserve?',
   'How do you want these photos to feel when you look back on them?',
   'What connection or moment matters most to capture?',
 ];
 
-function buildBespokeNarrative(selections, intentions, dogName) {
+function extractSessionData(selections, intentions, dogName) {
   const moodCounts = {};
   const settingCounts = {};
   selections.forEach(s => {
@@ -47,6 +56,12 @@ function buildBespokeNarrative(selections, intentions, dogName) {
   const moodText = topMoods.join(' and ');
   const settingText = topSettings.join(' and ');
 
+  return { topMoods, topSettings, styleDesc, dog, moodText, settingText };
+}
+
+function buildFallbackNarrative(selections, intentions, dogName, artworkPreferences) {
+  const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
+
   let narrative = `This vision leans ${moodText}, with a mix of ${styleDesc} moments in ${settingText} settings.`;
 
   const settingLower = settingText.toLowerCase();
@@ -58,7 +73,81 @@ function buildBespokeNarrative(selections, intentions, dogName) {
 
   narrative += ` Your session should prioritise ${dog}'s personality and the bond you share.`;
 
-  // Build structured brief data for PDF
+  return narrative;
+}
+
+async function generateAINarrative(selections, intentions, dogName, artworkPreferences) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const { moodText, settingText, styleDesc, dog } = extractSessionData(selections, intentions, dogName);
+  const filledIntentions = (intentions || []).filter(i => i && i.trim());
+  const artworkNames = (artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
+
+  const prompt = `You are writing a personalised session brief for a pet photography client of Ina J Photography in Canberra, Australia. You are writing as Ina Jalil, the photographer.
+
+VOICE AND TONE:
+- Register: warm, emotional, intimate, celebrating the bond between dog and owner. More personal, more feeling.
+- Ina is an authority and a peer at the same time. She never positions herself above the person she is talking to. Her purpose is to uplift, not impress.
+- Experience-led, not theory-led. Write from what Ina has actually done and seen in sessions, not hypotheticals.
+- Warm but not gushy. Emotionally grounded, not performative. No melodrama.
+- Full sentences flowing into each other in proper paragraphs. Not chopped fragments.
+- Australian English always: personalised, colour, prioritise, centre, honour, cosy.
+
+STRICT RULES:
+- No em dashes anywhere. Use a period or comma instead, always.
+- Never use: "furry friends", "fur babies", "tail wags", "wiggly butts", "pawsome", "paws", or any performative animal cuteness language.
+- Never use: "photoshoot" (say "photography session" or "portrait experience"), "free session" (say "complimentary session").
+- Never use: "unlock", "unleash", "level up", "game-changer", "delve", "navigate", "here's the thing", "here's the truth", "real talk", "I'm obsessed".
+- Never use: "capturing" more than once. Vary the language.
+- No bullet points. No headings. Just flowing paragraphs.
+- Don't start with "Based on your selections" or any meta-reference to the tool.
+
+CONTENT:
+Write a 3-4 paragraph session brief that:
+1. Reflects the emotional tone they are drawn to and what that reveals about what matters to them. Lead with feeling, not data.
+2. Recommends a setting and style approach with practical reasoning (time of day, location type, energy level). Be specific, not generic.
+3. Connects their desires to how the session will actually feel. Reassure them their dog does not need to be "well-behaved". Ina works with the dog's personality, not against it.
+${artworkNames.length > 0 ? `4. Mention how their chosen artwork formats (${artworkNames.join(', ')}) will shape the way we approach the session. For example, hero wall art means we will focus on one powerful composition worth building a room around, albums let us tell the full story, wall collections need variety in framing and expression.` : ''}
+
+Keep it under 200 words total.
+
+Their vision board data:
+- Dog's name: ${dog}
+- Dominant moods: ${moodText}
+- Preferred settings: ${settingText}
+- Style balance: ${styleDesc}
+${filledIntentions.length > 0 ? `- Core desires: ${filledIntentions.join('; ')}` : ''}
+${artworkNames.length > 0 ? `- Artwork interests: ${artworkNames.join(', ')}` : ''}`;
+
+  try {
+    const response = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    }, {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    const text = response.data?.content?.[0]?.text;
+    return text || null;
+  } catch (err) {
+    console.error('AI narrative generation failed:', err.message);
+    return null;
+  }
+}
+
+async function buildBespokeNarrative(selections, intentions, dogName, artworkPreferences) {
+  const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
+
+  const aiNarrative = await generateAINarrative(selections, intentions, dogName, artworkPreferences);
+  const narrative = aiNarrative || buildFallbackNarrative(selections, intentions, dogName, artworkPreferences);
+
   return {
     narrative,
     mood: moodText,
@@ -67,7 +156,7 @@ function buildBespokeNarrative(selections, intentions, dogName) {
     emotionalFocus: (intentions || []).filter(i => i && i.trim()).length > 0
       ? intentions.filter(i => i && i.trim())[0]
       : null,
-    planningFocus: `Focus on capturing ${dog}'s authentic personality in a ${moodText}, ${settingText} environment.`,
+    planningFocus: `Focus on ${dog}'s authentic personality in a ${moodText}, ${settingText} environment.`,
   };
 }
 
@@ -159,7 +248,8 @@ async function generatePDF(data) {
   doc.addPage();
   let cy = 50;
 
-  const brief = buildBespokeNarrative(selections, intentions, dogName);
+  const artPreferences = visionBoard.artworkPreferences || [];
+  const brief = await buildBespokeNarrative(selections, intentions, dogName, artPreferences);
 
   // Session Brief — structured and human
   doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
@@ -170,9 +260,11 @@ async function generatePDF(data) {
   cy += 16;
 
   // Narrative paragraph
-  doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Oblique')
-    .text(`\u201C${brief.narrative}\u201D`, 50, cy, { width: pw, lineGap: 3 });
-  cy += 50;
+  doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Oblique');
+  const narrativeText = `"${brief.narrative}"`;
+  const narrativeHeight = doc.heightOfString(narrativeText, { width: pw, lineGap: 3 });
+  doc.text(narrativeText, 50, cy, { width: pw, lineGap: 3 });
+  cy += narrativeHeight + 20;
 
   // Structured details
   const briefItems = [
@@ -188,17 +280,23 @@ async function generatePDF(data) {
   briefItems.forEach(([label, value]) => {
     doc.fontSize(9).fillColor(grey).font('Helvetica-Bold')
       .text(label.toUpperCase(), 50, cy, { width: pw });
-    cy += 12;
-    doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
-      .text(value, 50, cy, { width: pw, lineGap: 2 });
-    cy += 20;
+    cy += 14;
+    doc.fontSize(11).fillColor(darkGreen).font('Helvetica');
+    const valHeight = doc.heightOfString(value, { width: pw, lineGap: 2 });
+    doc.text(value, 50, cy, { width: pw, lineGap: 2 });
+    cy += valHeight + 10;
   });
 
-  cy += 8;
+  cy += 16;
 
   // Core Desires section
   const filledIntentions = (intentions || []).filter(i => i && i.trim());
   if (filledIntentions.length > 0) {
+    if (cy > doc.page.height - 120) {
+      doc.addPage();
+      cy = 50;
+    }
+
     doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
       .text('Your Core Desires', 50, cy, { width: pw });
     cy += 28;
@@ -211,36 +309,79 @@ async function generatePDF(data) {
         .text(intentionQuestions[idx] || '', 50, cy, { width: pw });
       cy += 14;
 
-      doc.fontSize(12).fillColor(coral).font('Helvetica')
-        .text('\u2665 ', 50, cy, { continued: true });
-      doc.fillColor(darkGreen).font('Helvetica').text(intention);
+      doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
+        .text(`- ${intention}`, 50, cy, { width: pw });
       cy += 22;
     });
-    cy += 10;
+    cy += 16;
   }
 
-  // Artwork Preferences section
-  const artPrefs = (visionBoard.artworkPreferences || []).map(id => artworkLabels[id]).filter(Boolean);
-  if (artPrefs.length > 0) {
-    if (cy > doc.page.height - 120) {
+  // Artwork Preferences section with images
+  const artPrefIds = (visionBoard.artworkPreferences || []).filter(id => artworkLabels[id]);
+  if (artPrefIds.length > 0) {
+    if (cy > doc.page.height - 200) {
       doc.addPage();
       cy = 50;
     }
 
     doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
-      .text('How You’d Like to Enjoy Your Photos', 50, cy, { width: pw });
+      .text('How You Want to Enjoy Your Photos', 50, cy, { width: pw });
     cy += 28;
 
     doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
     cy += 16;
 
-    artPrefs.forEach((label) => {
-      doc.fontSize(12).fillColor(coral).font('Helvetica')
-        .text('♦ ', 50, cy, { continued: true });
-      doc.fillColor(darkGreen).font('Helvetica').text(label);
-      cy += 20;
-    });
-    cy += 10;
+    const artImageResults = await Promise.allSettled(
+      artPrefIds.map(async (id) => {
+        const url = artworkImageUrls[id];
+        if (!url) return null;
+        const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 });
+        return Buffer.from(response.data);
+      })
+    );
+    const artImageBuffers = artImageResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+    const artCols = 3;
+    const artGap = 10;
+    const artImgWidth = (pw - artGap * (artCols - 1)) / artCols;
+    const artImgHeight = artImgWidth * 0.75;
+
+    for (let i = 0; i < artPrefIds.length; i++) {
+      const col = i % artCols;
+      const x = 50 + col * (artImgWidth + artGap);
+
+      if (col === 0 && cy + artImgHeight + 24 > doc.page.height - 50) {
+        doc.addPage();
+        cy = 50;
+      }
+
+      if (artImageBuffers[i]) {
+        try {
+          doc.save();
+          doc.roundedRect(x, cy, artImgWidth, artImgHeight, 4).clip();
+          doc.image(artImageBuffers[i], x, cy, {
+            width: artImgWidth, height: artImgHeight,
+            fit: [artImgWidth, artImgHeight], align: 'center', valign: 'center',
+          });
+          doc.restore();
+        } catch {
+          doc.roundedRect(x, cy, artImgWidth, artImgHeight, 4).fill('#f0f0f0');
+        }
+      }
+
+      doc.fontSize(8).fillColor(darkGreen).font('Helvetica-Bold')
+        .text(artworkLabels[artPrefIds[i]], x, cy + artImgHeight + 4, { width: artImgWidth, align: 'center' });
+
+      if (col === artCols - 1 || i === artPrefIds.length - 1) {
+        cy += artImgHeight + 24;
+      }
+    }
+    doc.fontSize(10).fillColor(coral).font('Helvetica')
+      .text('View all fine art products: www.inajphotography.com/fine-art-products', 50, cy, {
+        width: pw, align: 'center',
+        link: 'https://www.inajphotography.com/fine-art-products',
+      });
+    cy += 24;
   }
 
   // CTA section

@@ -112,7 +112,7 @@ export default function Gallery() {
       <div className="fixed bottom-0 left-0 right-0 bg-white selection-tray z-30 border-t border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 overflow-x-auto flex-1 mr-4">
+            <div className="flex items-center gap-4 overflow-x-auto flex-1 mr-4 py-2">
               {selections.length === 0 ? (
                 <p className="text-secondary-text font-lato text-sm">Select images to build your vision board</p>
               ) : (
@@ -128,7 +128,7 @@ export default function Gallery() {
                       />
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveFromTray(sel.imageId); }}
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-dark-green text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-coral transition-colors shadow-md"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-dark-green text-white rounded-full flex items-center justify-center text-xs hover:bg-coral transition-colors"
                       >
                         ×
                       </button>

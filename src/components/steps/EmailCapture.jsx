@@ -6,7 +6,7 @@ export default function EmailCapture() {
   const {
     userName, setUserName, userEmail, setUserEmail,
     dogName, setDogName,
-    selections, intentions, nextStep, prevStep,
+    selections, intentions, artworkPreferences, nextStep, prevStep,
     isSubmitting, setSubmitting, setSubmitError, submitError,
   } = useVisionStore();
 
@@ -41,8 +41,9 @@ export default function EmailCapture() {
         dogName: dogName.trim() || undefined,
         selections,
         intentions: intentions.filter(i => i.trim()),
+        artworkPreferences,
       });
-      nextStep(); // Go to step 6 - Vision Board Display
+      nextStep();
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {

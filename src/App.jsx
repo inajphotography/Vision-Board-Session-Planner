@@ -3,6 +3,7 @@ import useVisionStore from './store/useVisionStore';
 import Welcome from './components/steps/Welcome';
 import Gallery from './components/steps/Gallery';
 import Intentions from './components/steps/Intentions';
+import ArtworkPreference from './components/steps/ArtworkPreference';
 import EmailCapture from './components/steps/EmailCapture';
 import VisionBoard from './components/steps/VisionBoard';
 import ThankYou from './components/steps/ThankYou';
@@ -29,22 +30,24 @@ function App() {
       case 2: return <Gallery />;
       case 3: return <Gallery />; // Gallery handles its own annotation modal
       case 4: return <Intentions />;
-      case 5: return <EmailCapture />;
-      case 6: return <VisionBoard />;
-      case 7: return <ThankYou />;
+      case 5: return <ArtworkPreference />;
+      case 6: return <EmailCapture />;
+      case 7: return <VisionBoard />;
+      case 8: return <ThankYou />;
       default: return <Welcome />;
     }
   };
 
-  // Progress indicator — 4 visible steps mapped to internal step numbers
+  // Progress indicator — 5 visible steps mapped to internal step numbers
   const progressSteps = [
     { minStep: 1, label: 'Welcome' },
     { minStep: 2, label: 'Select' },
-    { minStep: 4, label: 'Intentions' },
-    { minStep: 5, label: 'Your Vision' },
+    { minStep: 4, label: 'Desires' },
+    { minStep: 5, label: 'Artwork' },
+    { minStep: 6, label: 'Your Vision' },
   ];
 
-  const showHeader = currentStep > 1 && currentStep < 6;
+  const showHeader = currentStep > 1 && currentStep < 7;
 
   return (
     <div className="min-h-screen bg-ivory">

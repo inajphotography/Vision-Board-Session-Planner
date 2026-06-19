@@ -4,6 +4,7 @@ const useVisionStore = create((set, get) => ({
   currentStep: 1,
   selections: [],
   intentions: ['', '', ''],
+  artworkPreferences: [],
   userName: '',
   userEmail: '',
   dogName: '',
@@ -16,7 +17,7 @@ const useVisionStore = create((set, get) => ({
   submitError: null,
 
   setStep: (step) => set({ currentStep: step }),
-  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 7) })),
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 8) })),
   prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) })),
 
   toggleImage: (image) => set((state) => {
@@ -78,6 +79,11 @@ const useVisionStore = create((set, get) => ({
   setUserName: (name) => set({ userName: name }),
   setUserEmail: (email) => set({ userEmail: email }),
   setDogName: (name) => set({ dogName: name }),
+  toggleArtworkPreference: (id) => set((state) => ({
+    artworkPreferences: state.artworkPreferences.includes(id)
+      ? state.artworkPreferences.filter(p => p !== id)
+      : [...state.artworkPreferences, id],
+  })),
   setSubmitting: (val) => set({ isSubmitting: val }),
   setSubmitError: (err) => set({ submitError: err }),
 

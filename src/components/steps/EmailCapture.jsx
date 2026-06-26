@@ -49,6 +49,10 @@ export default function EmailCapture() {
       if (response.data?.locationMatches) {
         setLocationMatches(response.data.locationMatches);
       }
+      // Meta Pixel: fire Lead event on successful submission (for ad optimisation)
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: 'Vision Board' });
+      }
       nextStep();
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Something went wrong. Please try again.');

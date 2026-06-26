@@ -692,6 +692,7 @@ async function addContactToBrevo(data) {
   await axios.post('https://api.brevo.com/v3/contacts', {
     email: user.email,
     attributes,
+    listIds: [parseInt(process.env.BREVO_LIST_ID || '46', 10)],
     updateEnabled: true,
   }, {
     headers: brevoHeaders(),

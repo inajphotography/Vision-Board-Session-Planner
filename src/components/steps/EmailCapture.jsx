@@ -7,7 +7,7 @@ export default function EmailCapture() {
     userName, setUserName, userEmail, setUserEmail,
     dogName, setDogName,
     selections, intentions, artworkPreferences, nextStep, prevStep,
-    isSubmitting, setSubmitting, setSubmitError, submitError, setSessionNarrative,
+    isSubmitting, setSubmitting, setSubmitError, submitError, setSessionNarrative, setLocationMatches,
   } = useVisionStore();
 
   const [emailValid, setEmailValid] = useState(true);
@@ -45,6 +45,9 @@ export default function EmailCapture() {
       });
       if (response.data?.narrative) {
         setSessionNarrative(response.data.narrative);
+      }
+      if (response.data?.locationMatches) {
+        setLocationMatches(response.data.locationMatches);
       }
       nextStep();
     } catch (err) {

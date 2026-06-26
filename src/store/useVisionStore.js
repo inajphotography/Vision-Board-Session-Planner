@@ -14,6 +14,7 @@ const useVisionStore = create((set, get) => ({
     style: null,
   },
   sessionNarrative: null,
+  locationMatches: null,
   isSubmitting: false,
   submitError: null,
 
@@ -86,6 +87,7 @@ const useVisionStore = create((set, get) => ({
       : [...state.artworkPreferences, id],
   })),
   setSessionNarrative: (narrative) => set({ sessionNarrative: narrative }),
+  setLocationMatches: (locationMatches) => set({ locationMatches }),
   setSubmitting: (val) => set({ isSubmitting: val }),
   setSubmitError: (err) => set({ submitError: err }),
 

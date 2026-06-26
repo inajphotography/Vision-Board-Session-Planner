@@ -40,6 +40,85 @@ const intentionQuestions = [
   'What connection or moment matters most to capture?',
 ];
 
+// Real locations from Ina's Pet Photography Location Guide, mapped to dog temperament.
+// The model picks the best-fit location from this list, it does not invent one.
+const CANBERRA_LOCATIONS = [
+  { name: 'Yarralumla English Garden', vibe: 'a peaceful, secret woodland garden with winding paths, mature trees and soft filtered light. Ina’s most popular spot. Best for anxious, reactive or easily distracted dogs, and for peak spring blossom or autumn colour' },
+  { name: 'Fetherston Gardens, Weston', vibe: 'tranquil, intimate and secluded, with native and exotic plants and a small pond. Best for shy or reserved dogs who relax in a quieter setting' },
+  { name: 'Lindsay Pryor National Arboretum', vibe: 'rustic, wild and expansive with wide open fields, off-leash. Best for energetic dogs who love to run, classic dog-in-nature shots and sunset silhouettes' },
+  { name: 'Lake Burley Griffin', vibe: 'iconic, grand and modern, lakeside with Canberra landmarks. Best for confident, city-savvy dogs who are comfortable around people and cyclists' },
+  { name: 'Lennox Gardens', vibe: 'serene and cultural, with a striking red Chinese pavilion and Japanese peace park, elegant and refined. Best for a unique backdrop and dogs comfortable with some activity nearby' },
+  { name: 'Commonwealth Park', vibe: 'classic, spacious and versatile, with lawns, ponds and iconic lake views. Best for clients who want variety, both playful and iconic skyline shots' },
+  { name: 'Pialligo Redwood Forest', vibe: 'dramatic towering redwoods with soft filtered light, awe-inspiring and graphic. Best for making any dog look majestic against an epic background' },
+  { name: 'Palmerville Heritage Park', vibe: 'open, natural and relaxed with a countryside feel, off-leash. Best for confident, social, well-recalled dogs who love to run' },
+];
+
+async function generateLocationMatches(selections, intentions, dogName) {
+  const { moodText, settingText, dog } = extractSessionData(selections, intentions, dogName);
+  const personality = (intentions || []).find(i => i && i.trim()) || '';
+
+  const fallback = {
+    locations: [
+      { name: 'Yarralumla English Garden', why: `A peaceful, secret-garden feel that suits the ${moodText || 'gentle'} mood you are drawn to, and it stays calm for dogs who get distracted easily.` },
+      { name: 'Lindsay Pryor National Arboretum', why: `Wide open space for ${dog} to run and explore, with uncluttered backdrops and beautiful sunset light.` },
+    ],
+  };
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return fallback;
+
+  const validNames = CANBERRA_LOCATIONS.map(l => l.name);
+  const locationList = CANBERRA_LOCATIONS.map(l => `- ${l.name}: ${l.vibe}`).join('\n');
+
+  const prompt = `You are Ina Jalil, a pet photographer in Canberra, Australia. Based on what this client is drawn to in their vision board, recommend the 2 or 3 best-fit photography locations for their session, so they can start picturing it.
+
+About this client and their dog (${dog}):
+- What they want to preserve about the dog: ${personality || 'not specified'}
+- The mood they are drawn to: ${moodText || 'natural'}
+- The setting they lean towards: ${settingText || 'outdoor'}
+
+Choose the 2 or 3 best-fit locations from this list ONLY. Do not invent a location. Use the exact names.
+${locationList}
+
+For each one, write one warm sentence on why it suits them, referencing their mood, their setting, or their dog's personality. Lead with joy and the bond. No mortality or "before it's too late" angles. Australian English. No em dashes.
+
+Return STRICT JSON only, no markdown, in exactly this shape:
+{"locations":[{"name":"exact name from the list","why":"one sentence"},{"name":"exact name from the list","why":"one sentence"}]}`;
+
+  try {
+    const response = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    }, {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    const text = response.data?.content?.[0]?.text || '';
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) return fallback;
+    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd + 1));
+
+    const locations = Array.isArray(parsed.locations)
+      ? parsed.locations
+          .filter(l => l && l.name && l.why && validNames.includes(String(l.name)))
+          .slice(0, 3)
+          .map(l => ({ name: String(l.name), why: String(l.why) }))
+      : [];
+
+    return locations.length > 0 ? { locations } : fallback;
+  } catch (err) {
+    console.error('Location matches generation failed:', err.message);
+    return fallback;
+  }
+}
+
 function extractSessionData(selections, intentions, dogName) {
   const moodCounts = {};
   const settingCounts = {};
@@ -152,11 +231,15 @@ ${artworkNames.length > 0 ? `- Artwork interests: ${artworkNames.join(', ')}` : 
 async function buildBespokeNarrative(selections, intentions, dogName, artworkPreferences, clientName) {
   const { styleDesc, dog, moodText, settingText } = extractSessionData(selections, intentions, dogName);
 
-  const aiNarrative = await generateAINarrative(selections, intentions, dogName, artworkPreferences, clientName);
+  const [aiNarrative, locationMatches] = await Promise.all([
+    generateAINarrative(selections, intentions, dogName, artworkPreferences, clientName),
+    generateLocationMatches(selections, intentions, dogName),
+  ]);
   const narrative = aiNarrative || buildFallbackNarrative(selections, intentions, dogName, artworkPreferences);
 
   return {
     narrative,
+    locationMatches,
     mood: moodText,
     setting: settingText,
     styleBalance: styleDesc,
@@ -167,7 +250,7 @@ async function buildBespokeNarrative(selections, intentions, dogName, artworkPre
   };
 }
 
-async function generatePDF(data) {
+export async function generatePDF(data) {
   const { user, visionBoard } = data;
   const { selections, intentions } = visionBoard;
   const dogName = user.dogName || '';
@@ -295,6 +378,46 @@ async function generatePDF(data) {
 
   cy += 16;
 
+  // Location matches (the quick win) — relevant before booking, builds desire
+  const locationMatches = brief.locationMatches;
+  if (locationMatches && Array.isArray(locationMatches.locations) && locationMatches.locations.length > 0) {
+    const locDog = dogName || 'your dog';
+    if (cy > doc.page.height - 180) {
+      doc.addPage();
+      cy = 50;
+    }
+
+    doc.fontSize(20).fillColor(coral).font('Helvetica-Bold')
+      .text(`Where We Could Photograph ${locDog}`, 50, cy, { width: pw });
+    cy += 28;
+
+    doc.moveTo(50, cy).lineTo(50 + pw, cy).strokeColor(coral).lineWidth(1).stroke();
+    cy += 16;
+
+    doc.fontSize(10).fillColor(grey).font('Helvetica-Oblique')
+      .text('Based on the photos and feelings you chose, here are the Canberra spots I think would suit best.', 50, cy, { width: pw, lineGap: 2 });
+    cy += 30;
+
+    locationMatches.locations.forEach((loc) => {
+      doc.fontSize(11).font('Helvetica');
+      const whyHeight = loc.why ? doc.heightOfString(loc.why, { width: pw, lineGap: 2 }) : 0;
+      const blockHeight = 18 + whyHeight + 14;
+      if (cy + blockHeight > doc.page.height - 50) {
+        doc.addPage();
+        cy = 50;
+      }
+      doc.fontSize(12).fillColor(darkGreen).font('Helvetica-Bold')
+        .text(loc.name, 50, cy, { width: pw });
+      cy += 18;
+      if (loc.why) {
+        doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
+          .text(loc.why, 50, cy, { width: pw, lineGap: 2 });
+        cy += whyHeight + 14;
+      }
+    });
+    cy += 16;
+  }
+
   // Core Desires section
   const filledIntentions = (intentions || []).filter(i => i && i.trim());
   if (filledIntentions.length > 0) {
@@ -311,13 +434,23 @@ async function generatePDF(data) {
     cy += 16;
 
     filledIntentions.forEach((intention, idx) => {
+      const q = intentionQuestions[idx] || '';
+      doc.fontSize(9).font('Helvetica');
+      const qHeight = doc.heightOfString(q, { width: pw });
+      doc.fontSize(11);
+      const aHeight = doc.heightOfString(`- ${intention}`, { width: pw, lineGap: 2 });
+      const blockHeight = qHeight + 4 + aHeight + 12;
+      if (cy + blockHeight > doc.page.height - 50) {
+        doc.addPage();
+        cy = 50;
+      }
       doc.fontSize(9).fillColor(grey).font('Helvetica')
-        .text(intentionQuestions[idx] || '', 50, cy, { width: pw });
-      cy += 14;
+        .text(q, 50, cy, { width: pw });
+      cy += qHeight + 4;
 
       doc.fontSize(11).fillColor(darkGreen).font('Helvetica')
-        .text(`- ${intention}`, 50, cy, { width: pw });
-      cy += 22;
+        .text(`- ${intention}`, 50, cy, { width: pw, lineGap: 2 });
+      cy += aHeight + 12;
     });
     cy += 16;
   }
@@ -437,6 +570,21 @@ async function generatePDF(data) {
 function buildUserEmailHTML(data) {
   const dogName = data.user.dogName;
   const dogRef = dogName ? `${dogName}'s` : 'your dog\u2019s';
+  const prepDog = dogName || 'your dog';
+
+  const locationMatches = data.brief && data.brief.locationMatches;
+  let locationHTML = '';
+  if (locationMatches && Array.isArray(locationMatches.locations) && locationMatches.locations.length > 0) {
+    const items = locationMatches.locations.map(l =>
+      `<li style="margin-bottom:10px;line-height:1.5"><strong>${l.name}.</strong>${l.why ? ` ${l.why}` : ''}</li>`
+    ).join('');
+    locationHTML = `
+      <div style="margin:8px 0 4px 0;padding:20px;background:#F7F4ED;border-radius:8px">
+        <p style="margin:0 0 12px 0;font-weight:600;font-size:16px">Where we could photograph ${prepDog}</p>
+        <p style="margin:0 0 12px 0;line-height:1.6">Based on the photos and feelings you chose, here are the Canberra spots I think would suit ${prepDog} best.</p>
+        <ul style="margin:0;padding-left:20px">${items}</ul>
+      </div>`;
+  }
 
   return `<!DOCTYPE html><html><head><style>
     body{font-family:'Helvetica Neue',Arial,sans-serif;color:#232817;background:#F7F4ED;margin:0;padding:0}
@@ -452,8 +600,9 @@ function buildUserEmailHTML(data) {
     <div class="header"><h1>Ina J Photography</h1><p>Your Emotional Vision Board</p></div>
     <div class="content">
       <p>Hi ${data.user.name},</p>
-      <p>Your personalised vision board is attached! It\u2019s a beautiful snapshot of the session you\u2019re dreaming of \u2014 the moods, settings, and moments that matter most to you.</p>
-      <p>Your vision board gives us a clear starting point. In your complimentary consultation call, we\u2019ll turn this into a real session plan \u2014 including the best location, mood, timing, and photo focus for ${dogRef} unique personality.</p>
+      <p>Your personalised vision board is attached! It\u2019s a beautiful snapshot of the session you\u2019re dreaming of, the moods, settings, and moments that matter most to you.</p>
+      ${locationHTML}
+      <p>Your vision board gives us a clear starting point. In your complimentary consultation call, we\u2019ll turn this into a real session plan, including the best location, mood, timing, and photo focus for ${dogRef} unique personality.</p>
       <p style="text-align:center"><a href="https://www.inajphotography.com/booking" class="cta">Book Your Complimentary Consultation Call</a></p>
       <p>Or <a href="https://www.inajphotography.com/session-info" style="color:#CA5E3C">see session details</a> to learn more about the experience.</p>
       <p>With warmth,<br>Ina J Photography</p>
@@ -627,7 +776,7 @@ export default async function handler(req, res) {
 
     await Promise.allSettled(tasks);
 
-    return res.status(200).json({ success: true, narrative: brief.narrative });
+    return res.status(200).json({ success: true, narrative: brief.narrative, locationMatches: brief.locationMatches });
   } catch (err) {
     console.error('Submission error:', err);
     return res.status(500).json({ error: 'An error occurred. Please try again.' });

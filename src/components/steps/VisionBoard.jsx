@@ -9,7 +9,7 @@ const intentionQuestions = [
 ];
 
 export default function VisionBoard() {
-  const { selections, intentions, userName, dogName, artworkPreferences, sessionNarrative, getSessionBrief } = useVisionStore();
+  const { selections, intentions, userName, dogName, artworkPreferences, sessionNarrative, locationMatches, getSessionBrief } = useVisionStore();
   const boardRef = useRef(null);
 
   const brief = getSessionBrief();
@@ -33,6 +33,15 @@ export default function VisionBoard() {
   };
 
   const narrative = sessionNarrative || buildFallbackNarrative();
+
+  const prepDog = dogName || 'your dog';
+  const fallbackLocationMatches = {
+    locations: [
+      { name: 'Yarralumla English Garden', why: `A peaceful, secret-garden feel, and it stays calm for dogs who get distracted easily.` },
+      { name: 'Lindsay Pryor National Arboretum', why: `Wide open space for ${prepDog} to run and explore, with beautiful sunset light.` },
+    ],
+  };
+  const guide = locationMatches || fallbackLocationMatches;
 
   return (
     <div className="min-h-screen px-4 py-12">
@@ -74,6 +83,33 @@ export default function VisionBoard() {
               {narrative}
             </p>
           </div>
+
+          {/* Location matches, the quick win */}
+          {guide && guide.locations && guide.locations.length > 0 && (
+            <div className="mb-8 p-6 bg-ivory rounded-xl">
+              <h3 className="font-playfair text-lg font-bold text-dark-green mb-2">
+                Where We Could Photograph {prepDog}
+              </h3>
+              <p className="font-lato text-sm text-secondary-text mb-4">
+                Based on the photos and feelings you chose, here are the Canberra spots I think would suit best.
+              </p>
+              <ul className="space-y-4">
+                {guide.locations.map((loc, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="text-coral mt-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                    <p className="font-lato text-dark-green">
+                      <span className="font-semibold">{loc.name}.</span>
+                      {loc.why ? ` ${loc.why}` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Core Desires */}
           {intentions.filter(i => i.trim()).length > 0 && (
@@ -169,7 +205,7 @@ export default function VisionBoard() {
           </h3>
           <p className="text-secondary-text font-lato text-base mb-8 max-w-lg mx-auto leading-relaxed">
             Your vision board gives us a clear starting point. In your complimentary
-            consultation call, we'll turn this into a real session plan — including the
+            consultation call, we'll turn this into a real session plan, including the
             best location, mood, timing, and photo focus for {dogName || 'your dog'}.
           </p>
           <div className="space-y-4">

@@ -1,5 +1,12 @@
 import PDFDocument from 'pdfkit';
 import axios from 'axios';
+import {
+  escapeHtml,
+  checkOrigin,
+  rateLimit,
+  verifyTurnstile,
+  validateSubmission,
+} from '../../lib/security.js';
 
 // --- PDF GENERATION ---
 
@@ -568,15 +575,16 @@ export async function generatePDF(data) {
 // --- EMAILS ---
 
 function buildUserEmailHTML(data) {
-  const dogName = data.user.dogName;
+  const dogName = escapeHtml(data.user.dogName);
   const dogRef = dogName ? `${dogName}'s` : 'your dog\u2019s';
   const prepDog = dogName || 'your dog';
+  const userName = escapeHtml(data.user.name);
 
   const locationMatches = data.brief && data.brief.locationMatches;
   let locationHTML = '';
   if (locationMatches && Array.isArray(locationMatches.locations) && locationMatches.locations.length > 0) {
     const items = locationMatches.locations.map(l =>
-      `<li style="margin-bottom:10px;line-height:1.5"><strong>${l.name}.</strong>${l.why ? ` ${l.why}` : ''}</li>`
+      `<li style="margin-bottom:10px;line-height:1.5"><strong>${escapeHtml(l.name)}.</strong>${l.why ? ` ${escapeHtml(l.why)}` : ''}</li>`
     ).join('');
     locationHTML = `
       <div style="margin:8px 0 4px 0;padding:20px;background:#F7F4ED;border-radius:8px">
@@ -599,7 +607,7 @@ function buildUserEmailHTML(data) {
   </style></head><body><div style="padding:20px;background:#F7F4ED"><div class="container">
     <div class="header"><h1>Ina J Photography</h1><p>Your Emotional Vision Board</p></div>
     <div class="content">
-      <p>Hi ${data.user.name},</p>
+      <p>Hi ${userName},</p>
       <p>Your personalised vision board is attached! It\u2019s a beautiful snapshot of the session you\u2019re dreaming of, the moods, settings, and moments that matter most to you.</p>
       ${locationHTML}
       <p>Your vision board gives us a clear starting point. In your complimentary consultation call, we\u2019ll turn this into a real session plan, including the best location, mood, timing, and photo focus for ${dogRef} unique personality.</p>
@@ -615,23 +623,26 @@ function buildBusinessEmailHTML(data) {
   const { user, visionBoard, submissionTimestamp } = data;
   const selectionsHTML = visionBoard.selections.map(sel =>
     `<div style="margin-bottom:16px;padding:12px;background:#f9f9f9;border-radius:6px">
-      <p style="margin:0 0 4px 0;font-weight:600">${sel.filename}</p>
-      <p style="margin:0 0 4px 0;font-size:13px;color:#7A7A7A">${sel.mood} \u00B7 ${sel.setting} \u00B7 ${sel.style}</p>
-      ${sel.annotation ? `<p style="margin:4px 0 0 0;font-style:italic">\u201C${sel.annotation}\u201D</p>` : ''}
+      <p style="margin:0 0 4px 0;font-weight:600">${escapeHtml(sel.filename)}</p>
+      <p style="margin:0 0 4px 0;font-size:13px;color:#7A7A7A">${escapeHtml(sel.mood)} \u00B7 ${escapeHtml(sel.setting)} \u00B7 ${escapeHtml(sel.style)}</p>
+      ${sel.annotation ? `<p style="margin:4px 0 0 0;font-style:italic">\u201C${escapeHtml(sel.annotation)}\u201D</p>` : ''}
     </div>`
   ).join('');
 
   const intentionsHTML = (visionBoard.intentions || [])
     .filter(i => i && i.trim())
-    .map(i => `<li style="margin-bottom:6px">${i}</li>`)
+    .map(i => `<li style="margin-bottom:6px">${escapeHtml(i)}</li>`)
     .join('');
+
+  const safeName = escapeHtml(user.name);
+  const safeEmail = escapeHtml(user.email);
 
   return `<!DOCTYPE html><html><body style="font-family:'Helvetica Neue',Arial,sans-serif;color:#232817;margin:0;padding:20px">
     <h2>New Vision Board Submission</h2>
     <h3>Contact Information</h3>
-    <p><strong>Name:</strong> ${user.name}</p>
-    <p><strong>Email:</strong> <a href="mailto:${user.email}">${user.email}</a></p>
-    ${user.dogName ? `<p><strong>Dog\u2019s name:</strong> ${user.dogName}</p>` : ''}
+    <p><strong>Name:</strong> ${safeName}</p>
+    <p><strong>Email:</strong> <a href="mailto:${encodeURIComponent(user.email)}">${safeEmail}</a></p>
+    ${user.dogName ? `<p><strong>Dog\u2019s name:</strong> ${escapeHtml(user.dogName)}</p>` : ''}
     <h3>Their Vision</h3><h4>Selected Images & Annotations</h4>${selectionsHTML}
     ${intentionsHTML ? `<h4>Core Desires</h4><ul>${intentionsHTML}</ul>` : ''}
     ${(visionBoard.artworkPreferences || []).length > 0 ? `<h4>Artwork Interests</h4><ul>${visionBoard.artworkPreferences.map(id => artworkLabels[id]).filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
@@ -706,15 +717,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const { name, email, dogName, selections, intentions, artworkPreferences } = req.body;
+  // --- Abuse protection: origin allowlist + per-IP rate limit ---
+  if (!checkOrigin(req)) {
+    return res.status(403).json({ error: 'Forbidden.' });
+  }
+  if (!rateLimit(req)) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
+  }
 
-    if (!name || !email || !selections || selections.length < 4) {
-      return res.status(400).json({ error: 'Please provide name, email, and at least 4 image selections.' });
+  try {
+    // Bot check (skipped automatically until TURNSTILE_SECRET_KEY is set)
+    const turnstileOk = await verifyTurnstile(req.body?.turnstileToken, req);
+    if (!turnstileOk) {
+      return res.status(403).json({ error: 'Could not verify your request. Please refresh and try again.' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Invalid email address.' });
+
+    // Validate + clamp all input (bounds, email format, image-URL allowlist)
+    const validation = validateSubmission(req.body);
+    if (validation.error) {
+      return res.status(400).json({ error: validation.error });
     }
+    const { name, email, dogName, selections, intentions, artworkPreferences } = validation.data;
 
     const submissionData = {
       user: { name, email, dogName: dogName || '' },

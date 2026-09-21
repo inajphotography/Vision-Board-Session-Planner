@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useVisionStore from '../../store/useVisionStore';
 import axios from 'axios';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 export default function EmailCapture() {
   const {
@@ -11,6 +13,30 @@ export default function EmailCapture() {
   } = useVisionStore();
 
   const [emailValid, setEmailValid] = useState(true);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
+
+  // Render the Turnstile widget once the script is ready (only if a site key is set).
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileRef.current) return;
+    let widgetId;
+    const interval = setInterval(() => {
+      if (window.turnstile && turnstileRef.current && !turnstileRef.current.dataset.rendered) {
+        turnstileRef.current.dataset.rendered = 'true';
+        widgetId = window.turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+        });
+        clearInterval(interval);
+      }
+    }, 200);
+    return () => {
+      clearInterval(interval);
+      if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
+    };
+  }, []);
 
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -25,7 +51,8 @@ export default function EmailCapture() {
     if (userEmail) setEmailValid(validateEmail(userEmail));
   };
 
-  const canSubmit = userName.trim() && userEmail.trim() && validateEmail(userEmail) && !isSubmitting;
+  const turnstileReady = !TURNSTILE_SITE_KEY || !!turnstileToken;
+  const canSubmit = userName.trim() && userEmail.trim() && validateEmail(userEmail) && turnstileReady && !isSubmitting;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,6 +69,7 @@ export default function EmailCapture() {
         selections,
         intentions: intentions.filter(i => i.trim()),
         artworkPreferences,
+        turnstileToken: turnstileToken || undefined,
       });
       if (response.data?.narrative) {
         setSessionNarrative(response.data.narrative);
@@ -123,6 +151,10 @@ export default function EmailCapture() {
             />
           </div>
 
+          {TURNSTILE_SITE_KEY && (
+            <div ref={turnstileRef} className="flex justify-center" />
+          )}
+
           {submitError && (
             <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-lato">
               {submitError}
@@ -149,7 +181,15 @@ export default function EmailCapture() {
 
           <p className="text-center text-xs text-secondary-text font-lato mt-4">
             We respect your privacy. Your information will only be used to send your vision board
-            and follow up about your photography session.
+            and follow up about your photography session. See our{' '}
+            <a
+              href="https://www.inajphotography.com/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-coral"
+            >
+              privacy policy
+            </a>.
           </p>
         </form>
       </div>

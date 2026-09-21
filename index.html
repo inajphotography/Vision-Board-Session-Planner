@@ -21,12 +21,15 @@
       fbq('init', '1589067024648967');
       fbq('track', 'PageView');
     </script>
+    <!-- End Meta Pixel Code -->
+    <!-- Cloudflare Turnstile (bot protection). Active only when a site key is configured. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  </head>
+  <body>
+    <!-- Meta Pixel noscript fallback (belongs in body, not head) -->
     <noscript><img height="1" width="1" style="display:none"
       src="https://www.facebook.com/tr?id=1589067024648967&ev=PageView&noscript=1"
     /></noscript>
-    <!-- End Meta Pixel Code -->
-  </head>
-  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

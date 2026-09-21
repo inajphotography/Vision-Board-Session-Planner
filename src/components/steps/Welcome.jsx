@@ -5,7 +5,7 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-2xl mx-auto text-center">
+      <div className="max-w-2xl mx-auto text-center py-12">
         <div className="mb-8">
           <p className="font-montserrat text-sm tracking-[0.2em] uppercase text-secondary-text mb-6">
             Ina J Photography
